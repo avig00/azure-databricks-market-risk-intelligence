@@ -1,0 +1,30 @@
+resources:
+  jobs:
+    market_risk_pipeline:
+      name: market-risk-pipeline
+      tasks:
+        - task_key: run_pipeline
+          spark_python_task:
+            python_file: ../notebooks/01_run_pipeline.py
+      job_clusters:
+        - job_cluster_key: pipeline_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 2
+      queue:
+        enabled: true
+
+    market_risk_dashboard_refresh:
+      name: market-risk-dashboard-refresh
+      tasks:
+        - task_key: refresh_assets
+          spark_python_task:
+            python_file: ../notebooks/02_dashboard_refresh.py
+      job_clusters:
+        - job_cluster_key: dashboard_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 1
+

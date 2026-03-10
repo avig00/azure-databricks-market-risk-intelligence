@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -16,12 +17,30 @@ def test_config_contracts(configured_env) -> None:
 
 def test_cli_smoke(configured_env) -> None:
     load_config.cache_clear()
-    env = {"PYTHONPATH": "src"}
-    result = subprocess.run(
-        [sys.executable, "-m", "market_risk_platform.main", "streaming"],
+    env = os.environ.copy()
+    env["PYTHONPATH"] = "src"
+    bootstrap = subprocess.run(
+        [sys.executable, "-m", "market_risk_platform.main", "run-all"],
         capture_output=True,
         text=True,
         check=True,
         env=env,
     )
-    assert "scaffolded" in result.stdout
+    assert "PipelineRunResult" in bootstrap.stdout
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "market_risk_platform.main",
+            "simulate",
+            "--assets",
+            "AAPL,XOM,TLT",
+            "--weights",
+            "0.4,0.3,0.3",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    assert "predicted_risk_tier" in result.stdout

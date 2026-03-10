@@ -24,3 +24,10 @@ This implementation is local-first and Databricks-compatible.
 - Spark-compatible logical pipeline stages: Bronze, Silver, Gold
 - Feature store and ML stage boundaries
 - Databricks job-friendly stage entrypoints via `python -m market_risk_platform.main`
+
+## Execution patterns
+
+- `run-all` builds Bronze, Silver, Gold, features, and both ML models in sequence for local validation or scheduled batch jobs.
+- `simulate --assets ... --weights ... --horizon ...` provides a thin command-line interface for scenario testing.
+- `dashboard-summary` returns the latest Gold-layer dashboard payload for lightweight health checks or API wrapping.
+- The Streamlit dashboard reads persisted datasets and model artifacts rather than training or transforming inline.

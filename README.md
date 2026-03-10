@@ -143,6 +143,7 @@ Interactive Risk Dashboard
 ## Infrastructure as Code
 
 - Terraform
+- Databricks Asset Bundles
 
 ---
 
@@ -650,6 +651,18 @@ PYTHONPATH=src python -m market_risk_platform.main train-classifier
 PYTHONPATH=src python -m market_risk_platform.main simulate
 ```
 
+Run the full local build in one command:
+
+```
+PYTHONPATH=src python -m market_risk_platform.main run-all
+```
+
+Run a custom portfolio simulation:
+
+```
+PYTHONPATH=src python -m market_risk_platform.main simulate --assets AAPL,MSFT,TLT --weights 0.5,0.3,0.2 --horizon 30
+```
+
 Run data ingestion:
 
 ```
@@ -674,6 +687,28 @@ Launch dashboard:
 
 ```
 PYTHONPATH=src streamlit run src/market_risk_platform/dashboard/app.py
+```
+
+Inspect a CLI dashboard payload summary:
+
+```
+PYTHONPATH=src python -m market_risk_platform.main dashboard-summary
+```
+
+Databricks deployment scaffold:
+
+```
+cd databricks
+databricks bundle validate
+```
+
+Terraform scaffold:
+
+```
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform plan
 ```
 
 ---

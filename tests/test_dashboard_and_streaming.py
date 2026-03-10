@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from market_risk_platform.config.settings import load_config
-from market_risk_platform.dashboard.app import build_dashboard_payload
+from market_risk_platform.dashboard.app import build_dashboard_payload, summarize_dashboard
 from market_risk_platform.data_ingestion.market_data_pipeline import ingest_market_data
 from market_risk_platform.features.feature_store_builder import build_features
 from market_risk_platform.lakehouse.gold_feature_builder import build_gold_outputs
@@ -21,10 +21,15 @@ def test_dashboard_payload_and_streaming(configured_env) -> None:
     train_model(config)
     train_classifier(config)
     payload = build_dashboard_payload()
+    summary = summarize_dashboard(payload)
     assert payload["portfolio_overview"]
     assert payload["market_stress"]
     assert payload["asset_risk_explorer"]
+    assert payload["correlation_network"]
+    assert payload["timeseries"]["volatility_trend"]
+    assert payload["timeseries"]["stress_trend"]
     assert payload["portfolio_simulation"]["predicted_risk_tier"] in {"LOW", "MEDIUM", "HIGH"}
+    assert summary["headline_metrics"]["stress_regime"] in {"LOW", "MEDIUM", "HIGH"}
     status = detect_streaming_signals()
-    assert status.status == "scaffolded"
-
+    assert status.status in {"normal", "alerting"}
+    assert "Signals derived from latest Gold-layer datasets" in status.message

@@ -1,0 +1,12 @@
+location                = "southcentralus"
+resource_group_name     = "rg-market-risk-intelligence"
+storage_account_name    = "mriskintelstorage01"
+storage_container_name  = "market-risk"
+key_vault_name          = "kv-market-risk-intel"
+data_factory_name       = "adf-market-risk-intel"
+databricks_workspace_name = "adb-market-risk-intel"
+tenant_id               = "00000000-0000-0000-0000-000000000000"
+enable_eventhub         = true
+eventhub_namespace_name = "evh-market-risk-intel"
+eventhub_name           = "market-signal-events"
+
