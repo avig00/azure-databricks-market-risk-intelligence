@@ -1,0 +1,9 @@
+.env
+.pytest_cache/
+__pycache__/
+.coverage
+*.pyc
+data/local/
+data/sample/artifacts/
+data/sample/logs/
+
