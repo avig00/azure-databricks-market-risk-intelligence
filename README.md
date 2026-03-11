@@ -739,6 +739,14 @@ CI workflow:
 
 It builds the wheel, checks Terraform formatting, runs the Python test suite, and smoke-tests the deployment helper scripts.
 
+Manual deployment workflow:
+
+```
+.github/workflows/deploy.yml
+```
+
+It provides a controlled GitHub Actions path for Terraform plan/apply and Databricks bundle validation using environment secrets.
+
 ---
 
 # Future Extensions

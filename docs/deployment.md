@@ -76,3 +76,11 @@ The repository now includes a GitHub Actions workflow at `.github/workflows/ci.y
 - checks Terraform formatting
 - runs the Python test suite
 - smoke-tests the Terraform-to-bundle helper scripts
+
+There is also a manual deployment workflow at `.github/workflows/deploy.yml` that separates:
+
+- package and Terraform plan
+- optional Terraform apply
+- optional Databricks bundle validation/deploy preparation
+
+It is designed to run with GitHub environment secrets such as Azure service principal credentials and Databricks host/token values.
