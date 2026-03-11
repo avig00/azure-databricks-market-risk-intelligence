@@ -37,6 +37,7 @@ class DatasetContract:
 @dataclass(frozen=True)
 class AppConfig:
     env: str
+    runtime_mode: str
     config_profile: str
     project_root: Path
     data_root: Path
@@ -104,6 +105,7 @@ def load_config() -> AppConfig:
     )
     return AppConfig(
         env=os.getenv("MARKET_RISK_ENV", "local"),
+        runtime_mode=os.getenv("RUNTIME_MODE", "local").lower(),
         config_profile=os.getenv("CONFIG_PROFILE", "local").lower(),
         project_root=project_root,
         data_root=data_root,

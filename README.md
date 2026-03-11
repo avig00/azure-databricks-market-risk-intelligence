@@ -697,6 +697,18 @@ Inspect a CLI dashboard payload summary:
 PYTHONPATH=src python -m market_risk_platform.main dashboard-summary
 ```
 
+Inspect an operational health report:
+
+```
+PYTHONPATH=src python -m market_risk_platform.main health-check
+```
+
+Verify the deployment/runtime contract:
+
+```
+PYTHONPATH=src python -m market_risk_platform.main verify-deployment
+```
+
 Databricks deployment scaffold:
 
 ```

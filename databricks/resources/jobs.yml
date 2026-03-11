@@ -36,6 +36,7 @@ resources:
             num_workers: 2
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
+              RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
               CONFIG_PROFILE: "{{job.parameters.market_risk_env}}"
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
@@ -89,6 +90,7 @@ resources:
             num_workers: 1
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
+              RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
               CONFIG_PROFILE: "{{job.parameters.market_risk_env}}"
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
@@ -140,6 +142,7 @@ resources:
             num_workers: 1
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
+              RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
               CONFIG_PROFILE: "{{job.parameters.market_risk_env}}"
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
@@ -147,6 +150,56 @@ resources:
               DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
               FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
             policy_id: ${var.cluster_policy_id}
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+
+    market_risk_post_deploy_smoke:
+      name: market-risk-post-deploy-smoke
+      parameters:
+        - name: market_risk_env
+          default: ${var.environment}
+        - name: catalog_name
+          default: ${var.catalog_name}
+        - name: storage_backend
+          default: ${var.storage_backend}
+        - name: adls_prefix
+          default: ${var.adls_prefix}
+        - name: databricks_secret_scope
+          default: ${var.databricks_secret_scope}
+        - name: fred_api_key_secret_key
+          default: ${var.fred_api_key_secret_key}
+      tasks:
+        - task_key: verify_post_deploy_contract
+          job_cluster_key: verification_cluster
+          python_wheel_task:
+            package_name: market-risk-platform
+            entry_point: market-risk-verify-deployment
+            named_parameters:
+              market_risk_env: "{{job.parameters.market_risk_env}}"
+              catalog_name: "{{job.parameters.catalog_name}}"
+              storage_backend: "{{job.parameters.storage_backend}}"
+              adls_prefix: "{{job.parameters.adls_prefix}}"
+          libraries:
+            - whl: ../dist/*.whl
+      job_clusters:
+        - job_cluster_key: verification_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 1
+            spark_env_vars:
+              MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
+              RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
+              CONFIG_PROFILE: "{{job.parameters.market_risk_env}}"
+              CATALOG_NAME: "{{job.parameters.catalog_name}}"
+              STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
+              ADLS_PREFIX: "{{job.parameters.adls_prefix}}"
+              DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
+              FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
+            policy_id: ${var.cluster_policy_id}
+      queue:
+        enabled: true
       email_notifications:
         on_failure:
           - ${var.notification_email}

@@ -11,4 +11,4 @@ def test_pyproject_scripts_exist() -> None:
     assert "market-risk-run-all" in scripts
     assert "market-risk-dashboard-refresh" in scripts
     assert scripts["market-risk-simulate"] == "market_risk_platform.entrypoints:simulate_default"
-
+    assert scripts["market-risk-verify-deployment"] == "market_risk_platform.entrypoints:verify_deployment"

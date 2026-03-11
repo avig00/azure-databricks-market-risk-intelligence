@@ -4,6 +4,8 @@ import argparse
 from dataclasses import asdict
 
 from market_risk_platform.dashboard.app import build_dashboard_payload, summarize_dashboard
+from market_risk_platform.operations.health import build_health_report
+from market_risk_platform.operations.verification import verification_report_dict
 from market_risk_platform.data_ingestion.market_data_pipeline import run_ingestion
 from market_risk_platform.features.feature_store_builder import build_feature_store
 from market_risk_platform.lakehouse.gold_feature_builder import build_gold_layer
@@ -19,7 +21,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run market risk platform stages")
     subparsers = parser.add_subparsers(dest="stage", required=True)
 
-    for stage in ["ingest", "silver", "gold", "features", "train-volatility", "train-classifier", "streaming", "run-all", "dashboard-summary"]:
+    for stage in [
+        "ingest",
+        "silver",
+        "gold",
+        "features",
+        "train-volatility",
+        "train-classifier",
+        "streaming",
+        "run-all",
+        "dashboard-summary",
+        "health-check",
+        "verify-deployment",
+    ]:
         subparsers.add_parser(stage)
 
     simulate_parser = subparsers.add_parser("simulate")
@@ -38,6 +52,12 @@ def main() -> None:
         return
     if args.stage == "dashboard-summary":
         print(summarize_dashboard(build_dashboard_payload()))
+        return
+    if args.stage == "health-check":
+        print(asdict(build_health_report()))
+        return
+    if args.stage == "verify-deployment":
+        print(verification_report_dict())
         return
 
     handlers = {

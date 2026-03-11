@@ -35,9 +35,11 @@ This repo remains local-first, so the Databricks bundle is a packaging/deploymen
 ## Runtime configuration
 
 - Jobs pass `MARKET_RISK_ENV`, `CONFIG_PROFILE`, `CATALOG_NAME`, `STORAGE_BACKEND`, and `ADLS_PREFIX` as runtime environment values.
+- Supported runtime modes are `local`, `databricks-dev`, and `databricks-prod`.
 - The `dev` target uses `finance_dev` and `lakehouse/dev`; the `prod` target uses `finance_prod` and `lakehouse/prod`.
 - FRED credentials can come from `FRED_API_KEY` directly or from Databricks secrets via `DATABRICKS_SECRET_SCOPE` and `FRED_API_KEY_SECRET_KEY`.
 - Secret scope/key names, notification email, and cluster policy ID are now bundle variables instead of hard-coded job config.
+- Databricks jobs now set `RUNTIME_MODE=databricks-<env>` explicitly so runtime validation can distinguish local and workspace execution.
 
 ## Terraform to Bundle handoff
 
@@ -84,3 +86,22 @@ There is also a manual deployment workflow at `.github/workflows/deploy.yml` tha
 - optional Databricks bundle validation/deploy preparation
 
 It is designed to run with GitHub environment secrets such as Azure service principal credentials and Databricks host/token values.
+It now writes deployment status details into the GitHub Actions step summary, supports an operator rollback note input, and documents the post-deploy smoke contract.
+
+## Post-deploy smoke verification
+
+The bundle includes a dedicated job, `market-risk-post-deploy-smoke`, that runs the wheel entrypoint `market-risk-verify-deployment`.
+
+That verification contract checks:
+
+- supported runtime mode and storage backend pairing
+- Gold and feature dataset readability
+- model artifact presence
+- dashboard summary availability
+- latest successful pipeline stage metadata
+
+Local verification uses:
+
+```bash
+PYTHONPATH=src python -m market_risk_platform.main verify-deployment
+```

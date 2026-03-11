@@ -30,10 +30,10 @@ dev = [
 market-risk-run-all = "market_risk_platform.entrypoints:run_all"
 market-risk-dashboard-refresh = "market_risk_platform.entrypoints:dashboard_refresh"
 market-risk-simulate = "market_risk_platform.entrypoints:simulate_default"
+market-risk-verify-deployment = "market_risk_platform.entrypoints:verify_deployment"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

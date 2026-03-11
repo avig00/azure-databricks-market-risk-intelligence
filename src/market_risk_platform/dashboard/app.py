@@ -5,6 +5,7 @@ from dataclasses import asdict
 import pandas as pd
 
 from market_risk_platform.config import load_config
+from market_risk_platform.operations.health import build_health_report
 from market_risk_platform.simulation import simulate_portfolio
 from market_risk_platform.utils import read_dataset
 
@@ -66,6 +67,7 @@ def summarize_dashboard(payload: dict[str, object]) -> dict[str, object]:
         },
         "top_volatility_assets": top_assets,
         "simulation": simulation,
+        "health": build_health_report().__dict__,
     }
 
 

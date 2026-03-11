@@ -21,6 +21,16 @@ on:
         required: true
         default: false
         type: boolean
+      run_post_deploy_smoke:
+        description: "Include post-deploy smoke verification instructions"
+        required: true
+        default: true
+        type: boolean
+      rollback_note:
+        description: "Optional rollback/runbook note for this deployment"
+        required: false
+        default: ""
+        type: string
 
 jobs:
   plan-and-package:
@@ -66,6 +76,17 @@ jobs:
           terraform -chdir=infra/terraform plan \
             -var-file=env/${{ inputs.target }}.tfvars \
             -out=tfplan
+
+      - name: Deployment summary
+        run: |
+          {
+            echo "## Deployment Plan"
+            echo "- Target: \`${{ inputs.target }}\`"
+            echo "- Apply infrastructure: \`${{ inputs.apply_infra }}\`"
+            echo "- Deploy bundle: \`${{ inputs.deploy_bundle }}\`"
+            echo "- Post-deploy smoke verification: \`${{ inputs.run_post_deploy_smoke }}\`"
+            echo "- Rollback note: \`${{ inputs.rollback_note }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Export Terraform outputs
         env:
@@ -116,6 +137,10 @@ jobs:
         run: |
           terraform -chdir=infra/terraform apply -auto-approve -var-file=env/${{ inputs.target }}.tfvars
 
+      - name: Apply summary
+        if: ${{ success() }}
+        run: echo "- Terraform apply succeeded for \`${{ inputs.target }}\`" >> "$GITHUB_STEP_SUMMARY"
+
   deploy-databricks:
     if: ${{ inputs.deploy_bundle }}
     runs-on: ubuntu-latest
@@ -160,3 +185,14 @@ jobs:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle validate -t ${{ inputs.target }}
+
+      - name: Databricks summary
+        if: ${{ success() }}
+        run: |
+          {
+            echo "- Databricks bundle validate succeeded for \`${{ inputs.target }}\`"
+            if [ "${{ inputs.run_post_deploy_smoke }}" = "true" ]; then
+              echo "- Post-deploy smoke job contract: \`market-risk-post-deploy-smoke\`"
+              echo "- Verification command: \`market-risk-verify-deployment\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

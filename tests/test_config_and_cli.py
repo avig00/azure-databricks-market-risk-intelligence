@@ -47,3 +47,11 @@ def test_cli_smoke(configured_env) -> None:
         env=env,
     )
     assert "predicted_risk_tier" in result.stdout
+    verification = subprocess.run(
+        [sys.executable, "-m", "market_risk_platform.main", "verify-deployment"],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    assert "checks_passed" in verification.stdout
