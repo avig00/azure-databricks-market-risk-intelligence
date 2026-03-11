@@ -32,3 +32,4 @@ This implementation is local-first and Databricks-compatible.
 - `dashboard-summary` returns the latest Gold-layer dashboard payload for lightweight health checks or API wrapping.
 - The Streamlit dashboard reads persisted datasets and model artifacts rather than training or transforming inline.
 - The storage layer is format-aware so local development can use Parquet now without changing upstream dataset contracts or downstream consumers.
+- `STORAGE_BACKEND=databricks` now routes dataset reads and writes through a Spark/Delta adapter, while `STORAGE_BACKEND=local` keeps using local files.

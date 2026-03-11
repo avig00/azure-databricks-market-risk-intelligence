@@ -28,5 +28,5 @@ This repo remains local-first, so the Databricks bundle is a packaging/deploymen
 
 1. Build a wheel or workspace file sync strategy for `src/market_risk_platform`.
 2. Add Databricks secrets / Key Vault-backed credentials for live ingestion.
-3. Replace CSV persistence with Delta Lake persistence in Databricks-targeted runs.
+3. Provide Databricks runtime dependencies so the `databricks` storage backend can write Delta tables via Spark.
 4. Add job schedules and alert destinations in the Databricks bundle.

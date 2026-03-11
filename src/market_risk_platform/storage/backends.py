@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from market_risk_platform.config import AppConfig, DatasetContract
+from market_risk_platform.storage.spark import PysparkDeltaAdapter, SparkAdapter
 
 
 def _parse_dates(dataframe: pd.DataFrame) -> pd.DataFrame:
@@ -46,20 +47,20 @@ class LocalFileBackend(DatasetBackend):
 
 
 class DatabricksDeltaBackend(DatasetBackend):
-    def __init__(self, config: AppConfig):
+    def __init__(self, config: AppConfig, adapter: SparkAdapter | None = None):
         self.config = config
+        self.adapter = adapter
+
+    def _adapter(self) -> SparkAdapter:
+        if self.adapter is None:
+            self.adapter = PysparkDeltaAdapter()
+        return self.adapter
 
     def read(self, contract: DatasetContract) -> pd.DataFrame:
-        raise NotImplementedError(
-            f"Delta backend read for '{contract.table_name}' is not implemented locally. "
-            "Execute this backend inside Databricks with Spark/Delta support."
-        )
+        return _parse_dates(self._adapter().read_dataset(contract.table_name, contract.adls_path))
 
     def write(self, contract: DatasetContract, dataframe: pd.DataFrame) -> str:
-        raise NotImplementedError(
-            f"Delta backend write for '{contract.table_name}' is not implemented locally. "
-            "Execute this backend inside Databricks with Spark/Delta support."
-        )
+        return self._adapter().write_dataset(contract.table_name, contract.adls_path, _parse_dates(dataframe))
 
 
 def get_dataset_backend(config: AppConfig) -> DatasetBackend:
