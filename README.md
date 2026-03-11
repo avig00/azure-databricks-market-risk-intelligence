@@ -716,6 +716,12 @@ cd ../..
 python3 scripts/render_bundle_vars.py /tmp/market-risk-tf-output.json
 ```
 
+Or generate the full Databricks deploy command directly:
+
+```bash
+python3 scripts/deploy_bundle.py --target dev --var-file env/dev.tfvars
+```
+
 Terraform scaffold:
 
 ```
@@ -724,6 +730,14 @@ cp terraform.tfvars.example terraform.tfvars
 terraform init
 terraform plan
 ```
+
+CI workflow:
+
+```
+.github/workflows/ci.yml
+```
+
+It builds the wheel, checks Terraform formatting, runs the Python test suite, and smoke-tests the deployment helper scripts.
 
 ---
 

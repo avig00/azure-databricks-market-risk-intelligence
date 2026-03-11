@@ -52,9 +52,27 @@ python3 scripts/render_bundle_vars.py /tmp/market-risk-tf-output.json
 
 That command prints `--var="key=value"` arguments that can be appended to `databricks bundle deploy`.
 
+For a higher-level helper that assembles the full deploy command:
+
+```bash
+python3 scripts/deploy_bundle.py --target dev --var-file env/dev.tfvars
+```
+
+Add `--execute` to actually run the Databricks deploy once the CLI is configured in your environment.
+
 ## Recommended next deployment steps
 
 1. Validate the `dev` and `prod` bundle targets in a real Databricks workspace.
-2. Use `scripts/render_bundle_vars.py` in your deployment workflow so Terraform outputs feed bundle deploy arguments automatically.
+2. Extend CI into a credentialed deploy pipeline for approved branches or tags.
 3. Add richer notification routing and on-success alerting if needed.
 4. Replace notebook wrappers entirely once the wheel deployment path is validated in a workspace.
+
+## CI
+
+The repository now includes a GitHub Actions workflow at `.github/workflows/ci.yml` that:
+
+- installs the package and dev dependencies
+- builds the wheel artifact
+- checks Terraform formatting
+- runs the Python test suite
+- smoke-tests the Terraform-to-bundle helper scripts

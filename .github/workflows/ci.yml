@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  test-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Build wheel
+        run: |
+          python -m pip install build
+          python -m build
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive infra/terraform
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Smoke test bundle helper
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+          import sys
+          import tempfile
+
+          payload = {
+              "bundle_environment_name": {"value": "dev"},
+              "bundle_catalog_name": {"value": "finance_dev"},
+              "bundle_adls_prefix": {"value": "lakehouse/dev"},
+          }
+          path = pathlib.Path(tempfile.gettempdir()) / "market_risk_tf_output.json"
+          path.write_text(json.dumps(payload))
+          subprocess.run(
+              [sys.executable, "scripts/render_bundle_vars.py", str(path)],
+              check=True,
+          )
+          subprocess.run(
+              [sys.executable, "scripts/deploy_bundle.py", "--target", "dev", "--terraform-output-json", str(path)],
+              check=True,
+          )
+          PY
+
