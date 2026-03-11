@@ -32,7 +32,7 @@ class ModelTrainingResult:
 
 def train_model(config: AppConfig | None = None) -> ModelTrainingResult:
     config = config or load_config()
-    training = read_dataset(config.dataset_contracts()["features_asset_training"].local_path).dropna(subset=VOL_FEATURES)
+    training = read_dataset(config.dataset_contracts()["features_asset_training"], config).dropna(subset=VOL_FEATURES)
     X = training[VOL_FEATURES]
     y = training["future_volatility_7d"]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -55,4 +55,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

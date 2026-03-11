@@ -15,8 +15,8 @@ class FeatureStoreResult:
 def build_features(config: AppConfig | None = None) -> FeatureStoreResult:
     config = config or load_config()
     contracts = config.dataset_contracts()
-    asset_features = read_dataset(contracts["gold_asset_risk_features"].local_path)
-    portfolio_metrics = read_dataset(contracts["gold_portfolio_risk_metrics"].local_path)
+    asset_features = read_dataset(contracts["gold_asset_risk_features"], config)
+    portfolio_metrics = read_dataset(contracts["gold_portfolio_risk_metrics"], config)
     portfolio_features = portfolio_metrics.copy()
     risk_score = (
         portfolio_features["portfolio_volatility"].rank(pct=True)
@@ -26,8 +26,8 @@ def build_features(config: AppConfig | None = None) -> FeatureStoreResult:
     portfolio_features["risk_tier"] = "MEDIUM"
     portfolio_features.loc[risk_score <= 0.33, "risk_tier"] = "LOW"
     portfolio_features.loc[risk_score >= 0.67, "risk_tier"] = "HIGH"
-    write_dataset(asset_features, contracts["features_asset_training"].local_path)
-    write_dataset(portfolio_features, contracts["features_portfolio_training"].local_path)
+    write_dataset(contracts["features_asset_training"], asset_features, config)
+    write_dataset(contracts["features_portfolio_training"], portfolio_features, config)
     return FeatureStoreResult(
         asset_features_path=str(contracts["features_asset_training"].local_path),
         portfolio_features_path=str(contracts["features_portfolio_training"].local_path),

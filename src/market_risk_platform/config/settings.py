@@ -29,6 +29,7 @@ class DatasetContract:
     layer: str
     name: str
     local_path: Path
+    storage_format: str
     table_name: str
     adls_path: str
 
@@ -40,6 +41,8 @@ class AppConfig:
     data_root: Path
     artifact_root: Path
     log_root: Path
+    storage_backend: str
+    local_storage_format: str
     use_sample_data: bool
     market_symbols: list[str]
     portfolio_symbols: list[str]
@@ -74,7 +77,8 @@ class AppConfig:
             contracts[key] = DatasetContract(
                 layer=layer,
                 name=name,
-                local_path=self.data_root / layer / f"{name}.csv",
+                local_path=self.data_root / layer / f"{name}.{self.local_storage_format}",
+                storage_format=self.local_storage_format,
                 table_name=self.catalog.table(schema, name),
                 adls_path=f"abfss://{self.adls_container}@storageaccount.dfs.core.windows.net/{self.adls_prefix}/{layer}/{name}",
             )
@@ -101,6 +105,8 @@ def load_config() -> AppConfig:
         data_root=data_root,
         artifact_root=artifact_root,
         log_root=log_root,
+        storage_backend=os.getenv("STORAGE_BACKEND", "local").lower(),
+        local_storage_format=os.getenv("LOCAL_STORAGE_FORMAT", "parquet").lower(),
         use_sample_data=os.getenv("USE_SAMPLE_DATA", "true").lower() == "true",
         market_symbols=_split_csv(os.getenv("MARKET_SYMBOLS", "AAPL,MSFT,NVDA,XOM,SPY,TLT,^GSPC,^IXIC,^VIX")),
         portfolio_symbols=_split_csv(os.getenv("PORTFOLIO_SYMBOLS", "AAPL,MSFT,NVDA,XOM,SPY,TLT")),

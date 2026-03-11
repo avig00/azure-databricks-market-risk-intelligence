@@ -18,10 +18,10 @@ class GoldResult:
 def build_gold_outputs(config: AppConfig | None = None) -> GoldResult:
     config = config or load_config()
     contracts = config.dataset_contracts()
-    volatility = read_dataset(contracts["silver_volatility_metrics"].local_path)
-    drawdowns = read_dataset(contracts["silver_asset_drawdowns"].local_path)
-    correlations = read_dataset(contracts["silver_market_correlations"].local_path)
-    macro = read_dataset(contracts["bronze_macro_indicators"].local_path)
+    volatility = read_dataset(contracts["silver_volatility_metrics"], config)
+    drawdowns = read_dataset(contracts["silver_asset_drawdowns"], config)
+    correlations = read_dataset(contracts["silver_market_correlations"], config)
+    macro = read_dataset(contracts["bronze_macro_indicators"], config)
     macro["macro_shock_score"] = macro.groupby("series_id")["value"].pct_change().fillna(0.0).abs()
     macro_daily = macro.groupby("date", as_index=False)["macro_shock_score"].mean()
     corr_agg = correlations.groupby("date", as_index=False)["correlation"].mean().rename(columns={"correlation": "mean_correlation"})
@@ -56,9 +56,9 @@ def build_gold_outputs(config: AppConfig | None = None) -> GoldResult:
         .rename(columns={"rolling_volatility_30d": "portfolio_volatility", "drawdown": "expected_drawdown"})
     )
     portfolio["value_at_risk_95"] = portfolio["portfolio_volatility"] * 1.65
-    write_dataset(asset_features, contracts["gold_asset_risk_features"].local_path)
-    write_dataset(stress, contracts["gold_market_stress_signals"].local_path)
-    write_dataset(portfolio, contracts["gold_portfolio_risk_metrics"].local_path)
+    write_dataset(contracts["gold_asset_risk_features"], asset_features, config)
+    write_dataset(contracts["gold_market_stress_signals"], stress, config)
+    write_dataset(contracts["gold_portfolio_risk_metrics"], portfolio, config)
     return GoldResult(
         asset_risk_features_path=str(contracts["gold_asset_risk_features"].local_path),
         market_stress_signals_path=str(contracts["gold_market_stress_signals"].local_path),
@@ -77,4 +77,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

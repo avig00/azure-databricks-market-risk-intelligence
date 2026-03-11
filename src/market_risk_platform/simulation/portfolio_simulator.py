@@ -45,7 +45,7 @@ def run_simulation(request: SimulationInput, config: AppConfig | None = None) ->
     _validate_request(request)
     config = config or load_config()
     contracts = config.dataset_contracts()
-    asset_features = read_dataset(contracts["gold_asset_risk_features"].local_path)
+    asset_features = read_dataset(contracts["gold_asset_risk_features"], config)
     latest = asset_features.sort_values("date").groupby("symbol").tail(1).set_index("symbol")
     missing = [asset for asset in request.assets if asset not in latest.index]
     if missing:

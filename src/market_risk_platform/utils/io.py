@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 
-
-def ensure_parent(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def write_dataset(dataframe: pd.DataFrame, path: Path) -> Path:
-    ensure_parent(path)
-    dataframe.to_csv(path, index=False)
-    return path
+from market_risk_platform.config import AppConfig, DatasetContract, load_config
+from market_risk_platform.storage import get_dataset_backend
 
 
-def read_dataset(path: Path) -> pd.DataFrame:
-    return pd.read_csv(path, parse_dates=["date"])
+def write_dataset(contract: DatasetContract, dataframe: pd.DataFrame, config: AppConfig | None = None) -> str:
+    config = config or load_config()
+    return get_dataset_backend(config).write(contract, dataframe)
+
+
+def read_dataset(contract: DatasetContract, config: AppConfig | None = None) -> pd.DataFrame:
+    config = config or load_config()
+    return get_dataset_backend(config).read(contract)

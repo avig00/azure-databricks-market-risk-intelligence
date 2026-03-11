@@ -13,9 +13,9 @@ def load_dashboard_data() -> dict[str, pd.DataFrame]:
     config = load_config()
     contracts = config.dataset_contracts()
     return {
-        "asset_risk_features": read_dataset(contracts["gold_asset_risk_features"].local_path),
-        "market_stress_signals": read_dataset(contracts["gold_market_stress_signals"].local_path),
-        "portfolio_risk_metrics": read_dataset(contracts["gold_portfolio_risk_metrics"].local_path),
+        "asset_risk_features": read_dataset(contracts["gold_asset_risk_features"], config),
+        "market_stress_signals": read_dataset(contracts["gold_market_stress_signals"], config),
+        "portfolio_risk_metrics": read_dataset(contracts["gold_portfolio_risk_metrics"], config),
     }
 
 

@@ -2,7 +2,7 @@
 
 This implementation is local-first and Databricks-compatible.
 
-- Local storage writes CSV datasets under `data/local/{layer}`.
+- Local storage materializes datasets under `data/local/{layer}` using the configured `LOCAL_STORAGE_FORMAT` (`parquet` by default).
 - Logical table names mirror Unity Catalog naming such as `finance.gold.asset_risk_features`.
 - Azure resource placeholders are carried through configuration only in the early milestones.
 - Streaming is scaffolded for future Azure Event Hubs or Databricks Structured Streaming integration.
@@ -31,3 +31,4 @@ This implementation is local-first and Databricks-compatible.
 - `simulate --assets ... --weights ... --horizon ...` provides a thin command-line interface for scenario testing.
 - `dashboard-summary` returns the latest Gold-layer dashboard payload for lightweight health checks or API wrapping.
 - The Streamlit dashboard reads persisted datasets and model artifacts rather than training or transforming inline.
+- The storage layer is format-aware so local development can use Parquet now without changing upstream dataset contracts or downstream consumers.

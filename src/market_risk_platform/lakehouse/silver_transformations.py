@@ -46,7 +46,7 @@ def _build_correlation_frame(daily_returns: pd.DataFrame, window: int = 30) -> p
 def transform_to_silver(config: AppConfig | None = None) -> SilverResult:
     config = config or load_config()
     contracts = config.dataset_contracts()
-    prices = read_dataset(contracts["bronze_stock_prices"].local_path).sort_values(["symbol", "date"])
+    prices = read_dataset(contracts["bronze_stock_prices"], config).sort_values(["symbol", "date"])
     prices["daily_return"] = prices.groupby("symbol")["adj_close"].pct_change().fillna(0.0)
     daily_returns = prices[["date", "symbol", "daily_return"]].copy()
     metrics = daily_returns.copy()
@@ -57,10 +57,10 @@ def transform_to_silver(config: AppConfig | None = None) -> SilverResult:
     drawdowns = prices[["date", "symbol", "adj_close"]].copy()
     drawdowns["drawdown"] = prices.groupby("symbol")["adj_close"].transform(_rolling_drawdown)
     corr = _build_correlation_frame(daily_returns, window=30)
-    write_dataset(daily_returns, contracts["silver_daily_returns"].local_path)
-    write_dataset(metrics, contracts["silver_volatility_metrics"].local_path)
-    write_dataset(corr, contracts["silver_market_correlations"].local_path)
-    write_dataset(drawdowns[["date", "symbol", "drawdown"]], contracts["silver_asset_drawdowns"].local_path)
+    write_dataset(contracts["silver_daily_returns"], daily_returns, config)
+    write_dataset(contracts["silver_volatility_metrics"], metrics, config)
+    write_dataset(contracts["silver_market_correlations"], corr, config)
+    write_dataset(contracts["silver_asset_drawdowns"], drawdowns[["date", "symbol", "drawdown"]], config)
     return SilverResult(
         daily_returns_path=str(contracts["silver_daily_returns"].local_path),
         volatility_metrics_path=str(contracts["silver_volatility_metrics"].local_path),

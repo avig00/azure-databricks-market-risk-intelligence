@@ -16,8 +16,8 @@ class StreamingStatus:
 def run_streaming_detection(config: AppConfig | None = None) -> StreamingStatus:
     config = config or load_config()
     contracts = config.dataset_contracts()
-    stress = read_dataset(contracts["gold_market_stress_signals"].local_path).sort_values("date")
-    assets = read_dataset(contracts["gold_asset_risk_features"].local_path).sort_values("date")
+    stress = read_dataset(contracts["gold_market_stress_signals"], config).sort_values("date")
+    assets = read_dataset(contracts["gold_asset_risk_features"], config).sort_values("date")
     latest_stress = stress.tail(1)
     latest_assets = assets.groupby("symbol").tail(1)
     alerts: list[str] = []

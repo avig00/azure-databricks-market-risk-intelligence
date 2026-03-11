@@ -11,8 +11,11 @@ def test_config_contracts(configured_env) -> None:
     load_config.cache_clear()
     config = load_config()
     contracts = config.dataset_contracts()
+    assert config.storage_backend == "local"
+    assert config.local_storage_format == "parquet"
     assert contracts["gold_asset_risk_features"].table_name == "finance.gold.asset_risk_features"
-    assert contracts["silver_daily_returns"].local_path.name == "daily_returns.csv"
+    assert contracts["silver_daily_returns"].local_path.name == "daily_returns.parquet"
+    assert contracts["silver_daily_returns"].storage_format == "parquet"
 
 
 def test_cli_smoke(configured_env) -> None:

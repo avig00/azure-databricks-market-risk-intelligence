@@ -23,12 +23,11 @@ def test_full_pipeline(configured_env) -> None:
     volatility_model = train_model(config)
     classifier = train_classifier(config)
     result = run_simulation(SimulationInput(assets=["AAPL", "XOM", "TLT"], weights=[0.4, 0.3, 0.3]), config)
-    assert silver.daily_returns_path.endswith("daily_returns.csv")
-    assert gold.asset_risk_features_path.endswith("asset_risk_features.csv")
-    assert features.portfolio_features_path.endswith("portfolio_training_features.csv")
+    assert silver.daily_returns_path.endswith("daily_returns.parquet")
+    assert gold.asset_risk_features_path.endswith("asset_risk_features.parquet")
+    assert features.portfolio_features_path.endswith("portfolio_training_features.parquet")
     assert volatility_model.primary_metric >= 0
     assert 0 <= classifier.primary_metric <= 1
     assert result.predicted_risk_tier in {"LOW", "MEDIUM", "HIGH"}
     assert joblib.load(config.artifact_root / "volatility_model.joblib")
     assert joblib.load(config.artifact_root / "risk_classifier.joblib")
-

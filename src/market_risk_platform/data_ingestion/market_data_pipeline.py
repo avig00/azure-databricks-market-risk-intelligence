@@ -35,9 +35,9 @@ def ingest_market_data(config: AppConfig | None = None) -> IngestionResult:
         raise ValueError("No macroeconomic data was ingested")
     stock_prices, market_indices = split_index_and_assets(price_df)
     contracts = config.dataset_contracts()
-    write_dataset(_prepare_frame(stock_prices), contracts["bronze_stock_prices"].local_path)
-    write_dataset(_prepare_frame(market_indices), contracts["bronze_market_indices"].local_path)
-    write_dataset(_prepare_frame(macro_df), contracts["bronze_macro_indicators"].local_path)
+    write_dataset(contracts["bronze_stock_prices"], _prepare_frame(stock_prices), config)
+    write_dataset(contracts["bronze_market_indices"], _prepare_frame(market_indices), config)
+    write_dataset(contracts["bronze_macro_indicators"], _prepare_frame(macro_df), config)
     return IngestionResult(
         stock_prices_path=str(contracts["bronze_stock_prices"].local_path),
         market_indices_path=str(contracts["bronze_market_indices"].local_path),

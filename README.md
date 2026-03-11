@@ -639,6 +639,8 @@ Copy environment defaults:
 cp .env.example .env
 ```
 
+Local datasets default to `parquet` via `LOCAL_STORAGE_FORMAT=parquet`, while logical table contracts remain Databricks/Delta-compatible.
+
 Run the pipeline locally with deterministic sample data:
 
 ```
