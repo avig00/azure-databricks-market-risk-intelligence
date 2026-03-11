@@ -18,15 +18,15 @@ Use `terraform.tfvars.example` as the starting point for environment-specific va
 The `databricks/` folder contains a Databricks Asset Bundle starter:
 
 - `bundle.yml` defines the bundle and workspace root path
-- `resources/jobs.yml` defines job resources for the main pipeline and dashboard refresh
-- `notebooks/01_run_pipeline.py` executes the end-to-end batch pipeline
-- `notebooks/02_dashboard_refresh.py` builds the dashboard payload summary
+- `resources/jobs.yml` defines wheel-based jobs for the main pipeline, dashboard refresh, and a default simulation run
+- `notebooks/01_run_pipeline.py` and `notebooks/02_dashboard_refresh.py` remain lightweight wrappers around package entrypoints
+- the wheel artifact is built from the repo root using `pyproject.toml`
 
 This repo remains local-first, so the Databricks bundle is a packaging/deployment layer on top of the same Python modules used locally.
 
 ## Recommended next deployment steps
 
-1. Build a wheel or workspace file sync strategy for `src/market_risk_platform`.
-2. Add Databricks secrets / Key Vault-backed credentials for live ingestion.
-3. Provide Databricks runtime dependencies so the `databricks` storage backend can write Delta tables via Spark.
-4. Add job schedules and alert destinations in the Databricks bundle.
+1. Add Databricks secrets / Key Vault-backed credentials for live ingestion.
+2. Provide cluster policies, schedules, and alert destinations in the Databricks bundle.
+3. Configure environment-specific bundle targets for dev/staging/prod workspaces.
+4. Replace notebook wrappers entirely once the wheel deployment path is validated in a workspace.

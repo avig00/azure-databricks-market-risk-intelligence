@@ -704,6 +704,8 @@ cd databricks
 databricks bundle validate
 ```
 
+Python package build metadata is defined in `pyproject.toml`, and the Databricks jobs are configured to use a built wheel artifact rather than only workspace notebooks.
+
 Terraform scaffold:
 
 ```

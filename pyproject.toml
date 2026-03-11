@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market-risk-platform"
+version = "0.1.0"
+description = "Azure Databricks market risk intelligence platform"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2,<3.0",
+  "numpy>=1.26,<3.0",
+  "pyarrow>=16.0,<20.0",
+  "pyspark>=3.5,<4.0",
+  "scikit-learn>=1.5,<2.0",
+  "joblib>=1.4,<2.0",
+  "streamlit>=1.40,<2.0",
+  "yfinance>=0.2.54,<0.3.0",
+  "fredapi>=0.5.2,<0.6.0",
+  "python-dotenv>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0,<9.0",
+]
+
+[project.scripts]
+market-risk-run-all = "market_risk_platform.entrypoints:run_all"
+market-risk-dashboard-refresh = "market_risk_platform.entrypoints:dashboard_refresh"
+market-risk-simulate = "market_risk_platform.entrypoints:simulate_default"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

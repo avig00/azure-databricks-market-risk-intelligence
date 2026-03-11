@@ -4,8 +4,12 @@ resources:
       name: market-risk-pipeline
       tasks:
         - task_key: run_pipeline
-          spark_python_task:
-            python_file: ../notebooks/01_run_pipeline.py
+          job_cluster_key: pipeline_cluster
+          python_wheel_task:
+            package_name: market-risk-platform
+            entry_point: market-risk-run-all
+          libraries:
+            - whl: ../dist/*.whl
       job_clusters:
         - job_cluster_key: pipeline_cluster
           new_cluster:
@@ -19,8 +23,12 @@ resources:
       name: market-risk-dashboard-refresh
       tasks:
         - task_key: refresh_assets
-          spark_python_task:
-            python_file: ../notebooks/02_dashboard_refresh.py
+          job_cluster_key: dashboard_cluster
+          python_wheel_task:
+            package_name: market-risk-platform
+            entry_point: market-risk-dashboard-refresh
+          libraries:
+            - whl: ../dist/*.whl
       job_clusters:
         - job_cluster_key: dashboard_cluster
           new_cluster:
@@ -28,3 +36,19 @@ resources:
             node_type_id: Standard_DS3_v2
             num_workers: 1
 
+    market_risk_simulation:
+      name: market-risk-simulation
+      tasks:
+        - task_key: run_default_simulation
+          job_cluster_key: simulation_cluster
+          python_wheel_task:
+            package_name: market-risk-platform
+            entry_point: market-risk-simulate
+          libraries:
+            - whl: ../dist/*.whl
+      job_clusters:
+        - job_cluster_key: simulation_cluster
+          new_cluster:
+            spark_version: 15.4.x-scala2.12
+            node_type_id: Standard_DS3_v2
+            num_workers: 1

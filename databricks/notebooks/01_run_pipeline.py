@@ -1,7 +1,5 @@
 # Databricks notebook source
 
-from market_risk_platform.pipeline import run_full_pipeline
+from market_risk_platform.entrypoints import run_all
 
-result = run_full_pipeline()
-print(result)
-
+run_all()

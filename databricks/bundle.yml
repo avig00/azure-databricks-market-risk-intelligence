@@ -1,13 +1,20 @@
 bundle:
   name: azure-databricks-market-risk-intelligence
 
+artifacts:
+  platform_wheel:
+    type: whl
+    path: ..
+
 targets:
   dev:
     mode: development
     default: true
     workspace:
       root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    artifacts:
+      platform_wheel:
+        dynamic_version: true
 
 include:
   - resources/*.yml
-
