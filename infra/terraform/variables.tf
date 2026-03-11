@@ -4,6 +4,12 @@ variable "location" {
   default     = "southcentralus"
 }
 
+variable "environment_name" {
+  description = "Environment name aligned to Databricks bundle targets."
+  type        = string
+  default     = "dev"
+}
+
 variable "resource_group_name" {
   description = "Resource group name for Azure infrastructure."
   type        = string
@@ -67,4 +73,34 @@ variable "eventhub_name" {
   description = "Event Hub name for market signals."
   type        = string
   default     = "market-signal-events"
+}
+
+variable "catalog_name" {
+  description = "Unity Catalog name to align with Databricks job configuration."
+  type        = string
+  default     = "finance_dev"
+}
+
+variable "adls_prefix" {
+  description = "ADLS prefix consumed by the Databricks storage backend."
+  type        = string
+  default     = "lakehouse/dev"
+}
+
+variable "databricks_secret_scope" {
+  description = "Databricks secret scope used by jobs for runtime credentials."
+  type        = string
+  default     = "market-risk-scope"
+}
+
+variable "fred_api_key_secret_key" {
+  description = "Secret key name for the FRED API credential."
+  type        = string
+  default     = "fred-api-key"
+}
+
+variable "notification_email" {
+  description = "Notification email aligned with Databricks job alerting."
+  type        = string
+  default     = ""
 }

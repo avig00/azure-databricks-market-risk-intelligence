@@ -15,8 +15,9 @@ provider "azurerm" {
 
 locals {
   tags = {
-    project = "azure-databricks-market-risk-intelligence"
-    owner   = "avig00"
+    project     = "azure-databricks-market-risk-intelligence"
+    owner       = "avig00"
+    environment = var.environment_name
   }
 }
 

@@ -707,6 +707,15 @@ databricks bundle deploy -t dev
 
 Python package build metadata is defined in `pyproject.toml`, and the Databricks jobs are configured to use a built wheel artifact rather than only workspace notebooks.
 
+To bridge Terraform outputs into Databricks bundle variables:
+
+```bash
+cd infra/terraform
+terraform output -json > /tmp/market-risk-tf-output.json
+cd ../..
+python3 scripts/render_bundle_vars.py /tmp/market-risk-tf-output.json
+```
+
 Terraform scaffold:
 
 ```

@@ -18,3 +18,26 @@ output "key_vault_uri" {
   value = azurerm_key_vault.platform.vault_uri
 }
 
+output "bundle_environment_name" {
+  value = var.environment_name
+}
+
+output "bundle_catalog_name" {
+  value = var.catalog_name
+}
+
+output "bundle_adls_prefix" {
+  value = var.adls_prefix
+}
+
+output "bundle_secret_scope" {
+  value = var.databricks_secret_scope
+}
+
+output "bundle_fred_api_key_secret_key" {
+  value = var.fred_api_key_secret_key
+}
+
+output "bundle_notification_email" {
+  value = var.notification_email
+}

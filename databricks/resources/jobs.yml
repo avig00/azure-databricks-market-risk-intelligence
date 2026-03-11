@@ -11,6 +11,10 @@ resources:
           default: ${var.storage_backend}
         - name: adls_prefix
           default: ${var.adls_prefix}
+        - name: databricks_secret_scope
+          default: ${var.databricks_secret_scope}
+        - name: fred_api_key_secret_key
+          default: ${var.fred_api_key_secret_key}
       tasks:
         - task_key: run_pipeline
           job_cluster_key: pipeline_cluster
@@ -36,10 +40,14 @@ resources:
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
               ADLS_PREFIX: "{{job.parameters.adls_prefix}}"
-              DATABRICKS_SECRET_SCOPE: market-risk-scope
-              FRED_API_KEY_SECRET_KEY: fred-api-key
+              DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
+              FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
+            policy_id: ${var.cluster_policy_id}
       queue:
         enabled: true
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: "America/Chicago"
@@ -56,6 +64,10 @@ resources:
           default: ${var.storage_backend}
         - name: adls_prefix
           default: ${var.adls_prefix}
+        - name: databricks_secret_scope
+          default: ${var.databricks_secret_scope}
+        - name: fred_api_key_secret_key
+          default: ${var.fred_api_key_secret_key}
       tasks:
         - task_key: refresh_assets
           job_cluster_key: dashboard_cluster
@@ -81,6 +93,12 @@ resources:
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
               ADLS_PREFIX: "{{job.parameters.adls_prefix}}"
+              DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
+              FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
+            policy_id: ${var.cluster_policy_id}
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
       schedule:
         quartz_cron_expression: "0 15 6 * * ?"
         timezone_id: "America/Chicago"
@@ -97,6 +115,10 @@ resources:
           default: ${var.storage_backend}
         - name: adls_prefix
           default: ${var.adls_prefix}
+        - name: databricks_secret_scope
+          default: ${var.databricks_secret_scope}
+        - name: fred_api_key_secret_key
+          default: ${var.fred_api_key_secret_key}
       tasks:
         - task_key: run_default_simulation
           job_cluster_key: simulation_cluster
@@ -122,3 +144,9 @@ resources:
               CATALOG_NAME: "{{job.parameters.catalog_name}}"
               STORAGE_BACKEND: "{{job.parameters.storage_backend}}"
               ADLS_PREFIX: "{{job.parameters.adls_prefix}}"
+              DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
+              FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
+            policy_id: ${var.cluster_policy_id}
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}

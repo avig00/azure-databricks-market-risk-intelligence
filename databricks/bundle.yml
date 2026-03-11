@@ -24,6 +24,14 @@ targets:
         default: databricks
       adls_prefix:
         default: lakehouse/dev
+      databricks_secret_scope:
+        default: market-risk-scope
+      fred_api_key_secret_key:
+        default: fred-api-key
+      cluster_policy_id:
+        default: ""
+      notification_email:
+        default: ""
 
   prod:
     mode: production
@@ -41,6 +49,14 @@ targets:
         default: databricks
       adls_prefix:
         default: lakehouse/prod
+      databricks_secret_scope:
+        default: market-risk-scope
+      fred_api_key_secret_key:
+        default: fred-api-key
+      cluster_policy_id:
+        default: ""
+      notification_email:
+        default: ""
 
 include:
   - resources/*.yml

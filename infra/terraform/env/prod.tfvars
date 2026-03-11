@@ -1,0 +1,17 @@
+environment_name          = "prod"
+resource_group_name       = "rg-market-risk-intelligence-prod"
+storage_account_name      = "mriskintelprod001"
+storage_container_name    = "market-risk"
+key_vault_name            = "kv-market-risk-prod"
+data_factory_name         = "adf-market-risk-prod"
+databricks_workspace_name = "adb-market-risk-prod"
+tenant_id                 = "00000000-0000-0000-0000-000000000000"
+enable_eventhub           = true
+eventhub_namespace_name   = "evh-market-risk-prod"
+eventhub_name             = "market-signal-events"
+catalog_name              = "finance_prod"
+adls_prefix               = "lakehouse/prod"
+databricks_secret_scope   = "market-risk-scope-prod"
+fred_api_key_secret_key   = "fred-api-key"
+notification_email        = "risk-alerts@example.com"
+
