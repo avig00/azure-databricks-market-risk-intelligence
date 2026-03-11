@@ -4,6 +4,7 @@
 
 1. Run CI and confirm package, Terraform formatting, and helper validation pass.
 2. Run deploy workflow for `dev` with Terraform plan enabled.
+   - the workflow now fails early if required Azure or Databricks credentials are missing
 3. If required, apply `dev` infrastructure.
 4. Validate Databricks bundle in `dev`.
 5. Run post-deploy checks:

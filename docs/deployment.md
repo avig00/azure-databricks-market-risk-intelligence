@@ -87,6 +87,11 @@ There is also a manual deployment workflow at `.github/workflows/deploy.yml` tha
 
 It is designed to run with GitHub environment secrets such as Azure service principal credentials and Databricks host/token values.
 It now writes deployment status details into the GitHub Actions step summary, supports an operator rollback note input, and documents the post-deploy smoke contract.
+It now fails early when the release request is invalid:
+
+- `prod` deploys are blocked unless the workflow runs from `main` or `master`
+- Azure credential variables are checked before Terraform plan/apply
+- Databricks credential variables are checked before bundle validation
 
 ## Post-deploy smoke verification
 

@@ -16,3 +16,4 @@ def test_deploy_workflow_has_summary_and_rollback_note() -> None:
     assert "rollback_note" in text
     assert "run_post_deploy_smoke" in text
     assert "GITHUB_STEP_SUMMARY" in text
+    assert "Validate release target and branch" in text

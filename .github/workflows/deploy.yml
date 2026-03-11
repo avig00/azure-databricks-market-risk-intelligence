@@ -41,6 +41,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate release target and branch
+        run: |
+          python3 scripts/validate_release_request.py \
+            --target ${{ inputs.target }} \
+            --ref-name ${{ github.ref_name }} \
+            --apply-infra ${{ inputs.apply_infra }} \
+            --deploy-bundle ${{ inputs.deploy_bundle }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -65,6 +73,22 @@ jobs:
 
       - name: Terraform init
         run: terraform -chdir=infra/terraform init
+
+      - name: Validate Azure credentials
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          python3 scripts/validate_release_request.py \
+            --target ${{ inputs.target }} \
+            --ref-name ${{ github.ref_name }} \
+            --apply-infra true \
+            --check-env ARM_CLIENT_ID \
+            --check-env ARM_CLIENT_SECRET \
+            --check-env ARM_SUBSCRIPTION_ID \
+            --check-env ARM_TENANT_ID
 
       - name: Terraform plan
         env:
@@ -128,6 +152,22 @@ jobs:
       - name: Terraform init
         run: terraform -chdir=infra/terraform init
 
+      - name: Validate Azure credentials
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        run: |
+          python3 scripts/validate_release_request.py \
+            --target ${{ inputs.target }} \
+            --ref-name ${{ github.ref_name }} \
+            --apply-infra true \
+            --check-env ARM_CLIENT_ID \
+            --check-env ARM_CLIENT_SECRET \
+            --check-env ARM_SUBSCRIPTION_ID \
+            --check-env ARM_TENANT_ID
+
       - name: Terraform apply
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -172,6 +212,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
+
+      - name: Validate Databricks credentials
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          python3 scripts/validate_release_request.py \
+            --target ${{ inputs.target }} \
+            --ref-name ${{ github.ref_name }} \
+            --deploy-bundle true \
+            --check-env DATABRICKS_HOST \
+            --check-env DATABRICKS_TOKEN
 
       - name: Render Databricks deploy command
         env:
