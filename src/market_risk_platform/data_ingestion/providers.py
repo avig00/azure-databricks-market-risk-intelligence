@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from market_risk_platform.config import AppConfig
+
 
 INDEX_SYMBOLS = {"^GSPC", "^IXIC", "^VIX"}
 
@@ -132,3 +134,23 @@ def get_provider(use_sample_data: bool, fred_api_key: str | None) -> SampleMarke
     if use_sample_data:
         return SampleMarketDataProvider()
     return LiveMarketDataProvider(fred_api_key=fred_api_key)
+
+
+def resolve_fred_api_key(config: AppConfig) -> str | None:
+    if config.fred_api_key:
+        return config.fred_api_key
+    if config.storage_backend != "databricks":
+        return None
+    if not config.databricks_secret_scope or not config.fred_api_key_secret_key:
+        return None
+    try:
+        from pyspark.dbutils import DBUtils
+        from pyspark.sql import SparkSession
+
+        spark = SparkSession.getActiveSession()
+        if spark is None:
+            return None
+        dbutils = DBUtils(spark)
+        return dbutils.secrets.get(scope=config.databricks_secret_scope, key=config.fred_api_key_secret_key)
+    except Exception:
+        return None

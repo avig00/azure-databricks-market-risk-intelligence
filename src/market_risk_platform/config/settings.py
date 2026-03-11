@@ -37,6 +37,7 @@ class DatasetContract:
 @dataclass(frozen=True)
 class AppConfig:
     env: str
+    config_profile: str
     project_root: Path
     data_root: Path
     artifact_root: Path
@@ -55,6 +56,8 @@ class AppConfig:
     adls_prefix: str
     key_vault_name: str
     databricks_workspace_url: str
+    databricks_secret_scope: str | None
+    fred_api_key_secret_key: str | None
 
     def dataset_contracts(self) -> dict[str, DatasetContract]:
         items = {
@@ -101,6 +104,7 @@ def load_config() -> AppConfig:
     )
     return AppConfig(
         env=os.getenv("MARKET_RISK_ENV", "local"),
+        config_profile=os.getenv("CONFIG_PROFILE", "local").lower(),
         project_root=project_root,
         data_root=data_root,
         artifact_root=artifact_root,
@@ -119,4 +123,6 @@ def load_config() -> AppConfig:
         adls_prefix=os.getenv("ADLS_PREFIX", "lakehouse"),
         key_vault_name=os.getenv("KEY_VAULT_NAME", "kv-market-risk"),
         databricks_workspace_url=os.getenv("DATABRICKS_WORKSPACE_URL", "https://adb-placeholder.azuredatabricks.net"),
+        databricks_secret_scope=os.getenv("DATABRICKS_SECRET_SCOPE"),
+        fred_api_key_secret_key=os.getenv("FRED_API_KEY_SECRET_KEY"),
     )

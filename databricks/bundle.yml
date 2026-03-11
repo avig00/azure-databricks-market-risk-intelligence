@@ -15,6 +15,32 @@ targets:
     artifacts:
       platform_wheel:
         dynamic_version: true
+    variables:
+      environment:
+        default: dev
+      catalog_name:
+        default: finance_dev
+      storage_backend:
+        default: databricks
+      adls_prefix:
+        default: lakehouse/dev
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+    artifacts:
+      platform_wheel:
+        dynamic_version: false
+    variables:
+      environment:
+        default: prod
+      catalog_name:
+        default: finance_prod
+      storage_backend:
+        default: databricks
+      adls_prefix:
+        default: lakehouse/prod
 
 include:
   - resources/*.yml

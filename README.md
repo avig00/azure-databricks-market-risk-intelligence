@@ -702,6 +702,7 @@ Databricks deployment scaffold:
 ```
 cd databricks
 databricks bundle validate
+databricks bundle deploy -t dev
 ```
 
 Python package build metadata is defined in `pyproject.toml`, and the Databricks jobs are configured to use a built wheel artifact rather than only workspace notebooks.

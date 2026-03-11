@@ -7,7 +7,7 @@ import pandas as pd
 from market_risk_platform.config import AppConfig, load_config
 from market_risk_platform.utils import run_stage, write_dataset
 
-from .providers import get_provider, split_index_and_assets
+from .providers import get_provider, resolve_fred_api_key, split_index_and_assets
 
 
 @dataclass
@@ -26,7 +26,7 @@ def _prepare_frame(dataframe: pd.DataFrame) -> pd.DataFrame:
 
 def ingest_market_data(config: AppConfig | None = None) -> IngestionResult:
     config = config or load_config()
-    provider = get_provider(config.use_sample_data, config.fred_api_key)
+    provider = get_provider(config.use_sample_data, resolve_fred_api_key(config))
     price_df = provider.fetch_prices(config.market_symbols, config.yfinance_start)
     macro_df = provider.fetch_macro(config.fred_series, config.fred_start)
     if price_df.empty:
