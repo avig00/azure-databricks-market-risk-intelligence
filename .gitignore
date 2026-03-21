@@ -6,4 +6,4 @@ __pycache__/
 data/local/
 data/sample/artifacts/
 data/sample/logs/
-
+docs/project_tracker.md

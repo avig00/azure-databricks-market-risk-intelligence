@@ -107,6 +107,70 @@ Interactive Risk Dashboard
 
 ---
 
+# AWS Equivalent Architecture
+
+If you want to explain the same platform in AWS terms, the closest equivalent architecture looks like this:
+
+| Azure + Databricks Component | AWS Equivalent |
+| --- | --- |
+| Azure Data Factory | AWS Glue workflows, Lambda, or Step Functions for orchestration |
+| Azure Data Lake Storage Gen2 | Amazon S3 data lake |
+| Azure Databricks | Databricks on AWS or Amazon EMR for Spark workloads |
+| Delta Lake on ADLS | Delta Lake on S3 |
+| Unity Catalog | Unity Catalog on AWS or AWS Glue Data Catalog |
+| Azure Event Hub | Amazon Kinesis Data Streams |
+| Azure Key Vault | AWS Secrets Manager |
+| Databricks SQL Warehouse | Databricks SQL on AWS or Amazon Athena/Redshift depending on query model |
+
+AWS-oriented flow:
+
+```
+Market Data Sources
+(Yahoo Finance / FRED / Macro indicators)
+
+            │
+            ▼
+AWS Glue / Lambda / Step Functions ingestion
+
+            │
+            ▼
+Amazon S3
+
+            │
+            ▼
+Databricks on AWS or Amazon EMR
+
+Bronze Layer
+Raw financial data
+
+Silver Layer
+Cleaned financial datasets
+
+Gold Layer
+Risk features + signals
+
+            │
+            ▼
+Feature Store / MLflow
+
+            │
+            ▼
+ML Models
+(volatility prediction + risk tier classification)
+
+            │
+            ▼
+Portfolio Simulation Engine
+
+            │
+            ▼
+Interactive Risk Dashboard
+```
+
+The business workflow stays the same across clouds: ingest market and macro data, land it in an object-store-backed lakehouse, transform it with Spark, train risk models, and serve simulation results through a dashboard. The main change is the cloud service mapping, not the analytical design.
+
+---
+
 # Technology Stack
 
 ## Cloud Infrastructure
