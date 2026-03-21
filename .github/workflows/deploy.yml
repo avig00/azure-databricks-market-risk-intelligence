@@ -57,7 +57,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.7
+          terraform_version: 1.6.6
 
       - name: Install Python dependencies
         run: |
@@ -147,7 +147,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.5.7
+          terraform_version: 1.6.6
 
       - name: Terraform init
         run: terraform -chdir=infra/terraform init

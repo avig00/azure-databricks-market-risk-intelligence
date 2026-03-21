@@ -752,7 +752,7 @@ PYTHONPATH=src python -m market_risk_platform.ml.train_risk_classifier
 Launch dashboard:
 
 ```
-PYTHONPATH=src streamlit run src/market_risk_platform/dashboard/app.py
+PYTHONPATH=src streamlit run streamlit_app.py
 ```
 
 Inspect a CLI dashboard payload summary:
@@ -795,17 +795,19 @@ python3 scripts/render_bundle_vars.py /tmp/market-risk-tf-output.json
 Or generate the full Databricks deploy command directly:
 
 ```bash
-python3 scripts/deploy_bundle.py --target dev --var-file env/dev.tfvars
+python3 scripts/deploy_bundle.py --target dev
 ```
 
 Terraform scaffold:
 
 ```
 cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars
+cp env/dev.mvp.tfvars.example env/dev.tfvars
 terraform init
-terraform plan
+terraform plan -var-file=env/dev.tfvars
 ```
+
+For the fastest MVP path, keep `enable_eventhub=false` in `dev` unless you specifically need streaming proof.
 
 CI workflow:
 
@@ -822,6 +824,72 @@ Manual deployment workflow:
 ```
 
 It provides a controlled GitHub Actions path for Terraform plan/apply and Databricks bundle validation using environment secrets.
+
+---
+
+# MVP Deployment Story
+
+The fastest path to a credible shipped version of this project is:
+
+1. provision a real `dev` Azure environment with Terraform
+2. validate or deploy the Databricks bundle in that workspace
+3. run at least one end-to-end risk workflow
+4. host the Streamlit UI as a demo surface using the repo's local sample datasets if needed
+
+This preserves both parts of the portfolio story:
+
+- Azure + Databricks prove the production-style backend architecture
+- Streamlit Community Cloud provides a live user-facing demo
+
+---
+
+# Hosted UI
+
+The repository includes a Streamlit dashboard entrypoint at `streamlit_app.py`.
+
+The hosted UI can run in local/sample-data mode because the repo already includes:
+
+- sample Gold-layer datasets in `data/local`
+- sample model artifacts in `data/sample/artifacts`
+- local-first defaults in `.env.example`
+
+Recommended Streamlit Community Cloud settings:
+
+```bash
+Main file path: streamlit_app.py
+Python version: 3.11
+```
+
+If you want the hosted UI to use real cloud-backed data later, you can move it to an authenticated backend integration after the Azure and Databricks environment is fully validated.
+
+Hosted app link:
+
+```text
+Add Streamlit app URL here after deployment
+```
+
+---
+
+# Deployment Evidence
+
+Add these proof points before final submission:
+
+- screenshot of the Azure resource group and key services
+- screenshot of the Databricks workspace or bundle validation/deploy result
+- screenshot of the Streamlit dashboard
+- sample output from `health-check`
+- sample output from `verify-deployment`
+- sample portfolio simulation result
+
+Verification placeholders:
+
+```text
+Azure resource group:
+Databricks workspace URL:
+Streamlit app URL:
+Latest health-check result:
+Latest verify-deployment result:
+```
 
 ---
 

@@ -12,6 +12,7 @@ The Terraform scaffold under `infra/terraform` provisions the core Azure control
 - optional Event Hubs namespace and hub
 
 Use `terraform.tfvars.example` as the starting point for environment-specific values.
+For the fastest portfolio MVP path, start from `infra/terraform/env/dev.mvp.tfvars.example` and keep `enable_eventhub=false` unless you specifically need streaming proof.
 
 The `infra/terraform/env/dev.tfvars` and `infra/terraform/env/prod.tfvars` files are aligned with the Databricks `dev` and `prod` bundle targets. They define matching values for:
 
@@ -57,10 +58,34 @@ That command prints `--var="key=value"` arguments that can be appended to `datab
 For a higher-level helper that assembles the full deploy command:
 
 ```bash
-python3 scripts/deploy_bundle.py --target dev --var-file env/dev.tfvars
+python3 scripts/deploy_bundle.py --target dev
 ```
 
-Add `--execute` to actually run the Databricks deploy once the CLI is configured in your environment.
+That helper reads `terraform output -json` from the current Terraform state. Add `--execute` to actually run the Databricks deploy once the CLI is configured in your environment.
+
+## MVP deployment order
+
+For the 24-hour MVP, use this order:
+
+1. Fill in real values in `infra/terraform/env/dev.tfvars` or copy from `infra/terraform/env/dev.mvp.tfvars.example`.
+2. Run `terraform init`.
+3. Run `terraform plan -var-file=env/dev.tfvars`.
+4. Apply the `dev` infrastructure.
+5. Export Terraform outputs.
+6. Run `python3 scripts/deploy_bundle.py --target dev`.
+7. Run `databricks bundle validate -t dev`.
+8. Deploy or validate the post-deploy smoke path in Databricks.
+
+## Hosted UI path
+
+The Streamlit dashboard can be hosted independently of the Azure/Databricks runtime for portfolio demonstration purposes.
+
+- The repo already contains local sample datasets under `data/local`
+- Sample model artifacts live under `data/sample/artifacts`
+- `.env.example` defaults the app to `STORAGE_BACKEND=local`
+- `streamlit_app.py` is the simplest Community Cloud entrypoint
+
+This means the public UI can demonstrate the product experience while Azure + Databricks prove the production-style backend architecture.
 
 ## Recommended next deployment steps
 

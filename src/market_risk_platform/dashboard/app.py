@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 
 import pandas as pd
 
@@ -33,7 +34,9 @@ def _stress_regime(market_stress_index: float) -> str:
     return "LOW"
 
 
-def _build_timeseries(asset_features: pd.DataFrame, stress_signals: pd.DataFrame, portfolio_metrics: pd.DataFrame) -> dict[str, list[dict[str, object]]]:
+def _build_timeseries(
+    asset_features: pd.DataFrame, stress_signals: pd.DataFrame, portfolio_metrics: pd.DataFrame
+) -> dict[str, list[dict[str, object]]]:
     volatility_trend = (
         asset_features.groupby("date", as_index=False)["rolling_volatility_30d"]
         .mean()
@@ -99,16 +102,179 @@ def build_dashboard_payload() -> dict[str, object]:
     }
 
 
+def _format_decimal(value: float, digits: int = 3) -> str:
+    return f"{value:.{digits}f}"
+
+
+def _format_percent(value: float, digits: int = 1) -> str:
+    return f"{value * 100:.{digits}f}%"
+
+
+def _risk_tone(label: str) -> str:
+    return {
+        "LOW": "Stable",
+        "MEDIUM": "Watchlist",
+        "HIGH": "Elevated",
+    }.get(label, label.title())
+
+
+def _normalize_weights(weights: list[float]) -> list[float]:
+    total = sum(weights)
+    if total <= 0:
+        return weights
+    return [weight / total for weight in weights]
+
+
+def _build_insight_cards(payload: dict[str, object], summary: dict[str, object]) -> list[dict[str, str]]:
+    top_asset = payload["asset_risk_explorer"][0]
+    simulation = payload["portfolio_simulation"]
+    stress_index = summary["headline_metrics"]["market_stress_index"]
+    return [
+        {
+            "title": "Top Risk Concentration",
+            "value": top_asset["symbol"],
+            "detail": f"Highest 30d volatility at {_format_percent(top_asset['rolling_volatility_30d'])}.",
+        },
+        {
+            "title": "Stress Regime",
+            "value": _risk_tone(summary["headline_metrics"]["stress_regime"]),
+            "detail": f"Market stress index is {_format_decimal(stress_index)} based on latest Gold-layer signals.",
+        },
+        {
+            "title": "Simulation Outlook",
+            "value": simulation["predicted_risk_tier"],
+            "detail": (
+                "Projected future volatility is "
+                f"{_format_percent(simulation['predicted_future_volatility'])} over the selected horizon."
+            ),
+        },
+    ]
+
+
+def _build_health_table(summary: dict[str, object]) -> pd.DataFrame:
+    health = summary["health"]
+    return pd.DataFrame(
+        [
+            {"check": "storage backend", "value": health["storage_backend"]},
+            {"check": "runtime mode", "value": health["runtime_mode"]},
+            {"check": "latest pipeline stage", "value": health["latest_stage"] or "not recorded"},
+            {"check": "pipeline status", "value": health["latest_status"] or "unknown"},
+            {"check": "fresh datasets", "value": str(health["checks_passed"])},
+        ]
+    )
+
+
+def _dataset_setup_message() -> str:
+    config = load_config()
+    sample_path = config.dataset_contracts()["gold_asset_risk_features"].local_path
+    return (
+        "The dashboard could not find the Gold-layer datasets it needs. "
+        f"Expected local sample data such as `{sample_path}` or a configured Databricks-backed runtime. "
+        "Run the ingestion and feature-building pipeline first, then reload the app."
+    )
+
+
+def _safe_build_payload() -> tuple[dict[str, object] | None, str | None]:
+    try:
+        return build_dashboard_payload(), None
+    except FileNotFoundError:
+        return None, _dataset_setup_message()
+    except Exception as exc:  # pragma: no cover - UI guardrail
+        return None, str(exc)
+
+
 def main() -> None:
     import streamlit as st
 
     st.set_page_config(page_title="Market Risk Intelligence", layout="wide")
-    st.title("Azure Databricks Market Risk Intelligence")
-    st.caption("Lakehouse-native market risk analytics with simulation-driven portfolio stress testing.")
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(17, 122, 101, 0.14), transparent 34%),
+                linear-gradient(180deg, #f4fbf7 0%, #e8f4ee 100%);
+        }
+        div[data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(21, 53, 45, 0.08);
+            border-radius: 16px;
+            padding: 0.9rem 1rem;
+            box-shadow: 0 10px 28px rgba(20, 48, 41, 0.06);
+        }
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(21, 53, 45, 0.08);
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+            min-height: 150px;
+            box-shadow: 0 12px 28px rgba(20, 48, 41, 0.06);
+        }
+        .dashboard-card h4 {
+            margin: 0 0 0.35rem 0;
+            color: #16352f;
+            font-size: 0.95rem;
+        }
+        .dashboard-card .value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #117a65;
+            margin-bottom: 0.45rem;
+        }
+        .dashboard-hero {
+            background: linear-gradient(120deg, rgba(15, 98, 79, 0.97), rgba(32, 138, 97, 0.88));
+            color: white;
+            border-radius: 24px;
+            padding: 1.35rem 1.4rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 18px 36px rgba(16, 94, 77, 0.2);
+        }
+        .dashboard-hero h1 {
+            margin: 0;
+            color: white;
+            font-size: 2rem;
+        }
+        .dashboard-hero p {
+            margin: 0.45rem 0 0 0;
+            color: rgba(255, 255, 255, 0.88);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    available_assets = load_config().portfolio_symbols
+    st.markdown(
+        """
+        <div class="dashboard-hero">
+            <h1>Market Risk Intelligence</h1>
+            <p>
+                Portfolio stress testing, volatility monitoring, and scenario simulation for a
+                lakehouse-native market risk platform.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    payload, error = _safe_build_payload()
+    if payload is None:
+        st.error(error or "Dashboard data could not be loaded.")
+        st.info(
+            "Suggested next step: run the local ingestion, silver, gold, feature, and model training "
+            "commands before reopening the dashboard."
+        )
+        st.stop()
+
+    summary = summarize_dashboard(payload)
+    config = load_config()
+    available_assets = config.portfolio_symbols
+
+    st.sidebar.header("Simulation Controls")
+    st.sidebar.caption("Use this panel to pressure-test a custom portfolio allocation.")
     selected_assets = st.sidebar.multiselect(
-        "Portfolio assets", options=available_assets, default=available_assets[:3] if len(available_assets) >= 3 else available_assets
+        "Portfolio assets",
+        options=available_assets,
+        default=available_assets[:3] if len(available_assets) >= 3 else available_assets,
     )
     default_weight = round(1 / len(selected_assets), 4) if selected_assets else 0.0
     weights = [
@@ -122,55 +288,152 @@ def main() -> None:
         )
         for asset in selected_assets
     ]
+    auto_normalize = st.sidebar.checkbox("Auto-normalize weights", value=True)
     horizon = st.sidebar.selectbox("Simulation horizon", options=[7, 30, 90], index=0)
-    simulate_clicked = st.sidebar.button("Run Simulation")
+    simulate_clicked = st.sidebar.button("Run Simulation", type="primary")
     weight_total = sum(weights)
     st.sidebar.caption(f"Weight total: {weight_total:.2f}")
 
-    payload = build_dashboard_payload()
     if simulate_clicked and selected_assets:
         from market_risk_platform.simulation.portfolio_simulator import simulate_portfolio
 
-        if abs(weight_total - 1.0) > 1e-6:
+        adjusted_weights = _normalize_weights(weights) if auto_normalize else weights
+        if not auto_normalize and abs(weight_total - 1.0) > 1e-6:
             st.sidebar.error("Weights must sum to 1.0 to run the simulation.")
         else:
-            payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, weights, horizon))
+            payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, adjusted_weights, horizon))
+            summary = summarize_dashboard(payload)
+            if auto_normalize and abs(weight_total - 1.0) > 1e-6:
+                st.sidebar.success("Weights were normalized automatically for the simulation run.")
 
-    summary = summarize_dashboard(payload)
+    overview = pd.DataFrame(payload["portfolio_overview"])
+    stress = pd.DataFrame(payload["market_stress"])
+    asset_risk = pd.DataFrame(payload["asset_risk_explorer"])
+    correlation = pd.DataFrame(payload["correlation_network"])
+    simulation = payload["portfolio_simulation"]
     metrics = summary["headline_metrics"]
+    insights = _build_insight_cards(payload, summary)
+
+    meta_left, meta_right = st.columns([1.5, 1])
+    with meta_left:
+        st.caption(
+            f"Runtime: `{config.runtime_mode}` | Storage backend: `{config.storage_backend}` | "
+            f"Catalog: `{config.catalog.catalog}`"
+        )
+    with meta_right:
+        latest_date = pd.to_datetime(asset_risk["date"]).max().date()
+        st.caption(f"Latest dataset snapshot: `{latest_date.isoformat()}`")
+
     metric_columns = st.columns(5)
-    metric_columns[0].metric("Portfolio Volatility", f"{metrics['portfolio_volatility']:.3f}")
-    metric_columns[1].metric("95% VaR", f"{metrics['value_at_risk_95']:.3f}")
-    metric_columns[2].metric("Stress Index", f"{metrics['market_stress_index']:.3f}")
+    metric_columns[0].metric("Portfolio Volatility", _format_percent(metrics["portfolio_volatility"]))
+    metric_columns[1].metric("95% VaR", _format_percent(metrics["value_at_risk_95"]))
+    metric_columns[2].metric("Stress Index", _format_decimal(metrics["market_stress_index"]))
     metric_columns[3].metric("Stress Regime", metrics["stress_regime"])
     metric_columns[4].metric("Risk Tier", metrics["simulation_risk_tier"])
 
-    overview_col, stress_col = st.columns([1.3, 1])
-    with overview_col:
-        st.subheader("Portfolio Risk Overview")
-        st.dataframe(pd.DataFrame(payload["portfolio_overview"]), use_container_width=True)
-        st.subheader("Portfolio Simulation")
-        st.json(payload["portfolio_simulation"])
-        st.subheader("Volatility Trend")
-        volatility_trend = pd.DataFrame(payload["timeseries"]["volatility_trend"]).set_index("date")
-        st.line_chart(volatility_trend)
-    with stress_col:
-        st.subheader("Market Stress Signals")
-        st.dataframe(pd.DataFrame(payload["market_stress"]), use_container_width=True)
-        st.subheader("Correlation Exposure")
-        st.dataframe(pd.DataFrame(payload["correlation_network"]), use_container_width=True)
-        st.subheader("Stress Trend")
-        stress_trend = pd.DataFrame(payload["timeseries"]["stress_trend"]).set_index("date")
-        st.line_chart(stress_trend[["market_stress_index", "avg_volatility_30d"]])
+    insight_columns = st.columns(3)
+    for column, card in zip(insight_columns, insights):
+        column.markdown(
+            f"""
+            <div class="dashboard-card">
+                <h4>{card["title"]}</h4>
+                <div class="value">{card["value"]}</div>
+                <div>{card["detail"]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    trend_col, asset_col = st.columns([1, 1.2])
-    with trend_col:
-        st.subheader("Portfolio Drawdown Trend")
-        drawdown_trend = pd.DataFrame(payload["timeseries"]["drawdown_trend"]).set_index("date")
-        st.area_chart(drawdown_trend)
-    with asset_col:
-        st.subheader("Asset Risk Explorer")
-        st.dataframe(pd.DataFrame(payload["asset_risk_explorer"]), use_container_width=True)
+    overview_tab, trends_tab, assets_tab, ops_tab = st.tabs(
+        ["Executive View", "Trend Analysis", "Asset Drilldown", "Operations"]
+    )
+
+    with overview_tab:
+        top_left, top_right = st.columns([1.2, 0.8])
+        with top_left:
+            st.subheader("Portfolio Risk Overview")
+            st.dataframe(overview, use_container_width=True, hide_index=True)
+            st.subheader("Portfolio Simulation")
+            sim_cols = st.columns(4)
+            sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
+            sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
+            sim_cols[2].metric("Expected Drawdown", _format_percent(simulation["expected_drawdown"]))
+            sim_cols[3].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
+            st.json(simulation)
+        with top_right:
+            st.subheader("Market Stress Snapshot")
+            st.dataframe(stress, use_container_width=True, hide_index=True)
+            st.subheader("Operating Notes")
+            st.markdown(
+                """
+                - The dashboard uses the latest Gold-layer datasets and model artifacts.
+                - Custom simulations reuse the trained risk classifier and volatility model.
+                - This MVP is designed to show portfolio sensitivity, not trade execution.
+                """
+            )
+
+    with trends_tab:
+        trend_left, trend_right = st.columns(2)
+        with trend_left:
+            st.subheader("Average Volatility Trend")
+            volatility_trend = pd.DataFrame(payload["timeseries"]["volatility_trend"]).set_index("date")
+            st.line_chart(volatility_trend)
+            st.subheader("Average Drawdown Trend")
+            drawdown_trend = pd.DataFrame(payload["timeseries"]["drawdown_trend"]).set_index("date")
+            st.area_chart(drawdown_trend)
+        with trend_right:
+            st.subheader("Stress Trend")
+            stress_trend = pd.DataFrame(payload["timeseries"]["stress_trend"]).set_index("date")
+            st.line_chart(stress_trend[["market_stress_index", "avg_volatility_30d"]])
+            st.subheader("Portfolio Trend")
+            portfolio_trend = pd.DataFrame(payload["timeseries"]["portfolio_trend"]).set_index("date")
+            chart_columns = [col for col in ["portfolio_volatility", "value_at_risk_95"] if col in portfolio_trend.columns]
+            st.line_chart(portfolio_trend[chart_columns])
+
+    with assets_tab:
+        drill_left, drill_right = st.columns([1.25, 1])
+        with drill_left:
+            st.subheader("Asset Risk Explorer")
+            display_columns = [
+                "symbol",
+                "rolling_volatility_30d",
+                "drawdown",
+                "correlation_spike",
+                "macro_shock_score",
+            ]
+            st.dataframe(asset_risk[display_columns], use_container_width=True, hide_index=True)
+        with drill_right:
+            st.subheader("Correlation Exposure")
+            st.dataframe(correlation, use_container_width=True, hide_index=True)
+            st.subheader("Current Narrative")
+            highest_corr = correlation.iloc[0]
+            st.info(
+                f"{highest_corr['symbol']} currently leads correlation exposure with a reading of "
+                f"{_format_decimal(highest_corr['correlation_spike'])}."
+            )
+
+    with ops_tab:
+        ops_left, ops_right = st.columns([1, 1.1])
+        with ops_left:
+            st.subheader("Platform Health")
+            st.dataframe(_build_health_table(summary), use_container_width=True, hide_index=True)
+        with ops_right:
+            st.subheader("Deployment Context")
+            contracts = config.dataset_contracts()
+            st.code(
+                "\n".join(
+                    [
+                        f"gold asset features: {Path(contracts['gold_asset_risk_features'].local_path)}",
+                        f"gold market stress: {Path(contracts['gold_market_stress_signals'].local_path)}",
+                        f"gold portfolio metrics: {Path(contracts['gold_portfolio_risk_metrics'].local_path)}",
+                    ]
+                ),
+                language="text",
+            )
+            st.caption(
+                "These paths are used in local mode. In Databricks mode, the same contracts resolve to "
+                "catalog-backed Delta tables and ADLS paths."
+            )
 
 
 if __name__ == "__main__":

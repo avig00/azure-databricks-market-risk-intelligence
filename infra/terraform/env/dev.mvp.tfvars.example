@@ -1,0 +1,25 @@
+environment_name          = "dev"
+location                  = "southcentralus"
+resource_group_name       = "rg-market-risk-intelligence-dev"
+storage_account_name      = "mriskinteldev001"
+storage_container_name    = "market-risk"
+key_vault_name            = "kvmriskdev001"
+data_factory_name         = "adf-market-risk-dev"
+databricks_workspace_name = "adb-market-risk-dev"
+tenant_id                 = "REPLACE_WITH_YOUR_TENANT_ID"
+
+# Set this to false for the 24-hour MVP unless you need streaming proof.
+enable_eventhub           = false
+eventhub_namespace_name   = "evhmriskdev001"
+eventhub_name             = "market-signal-events"
+
+catalog_name              = "finance_dev"
+adls_prefix               = "lakehouse/dev"
+databricks_secret_scope   = "market-risk-scope-dev"
+fred_api_key_secret_key   = "fred-api-key"
+notification_email        = "REPLACE_WITH_YOUR_EMAIL"
+
+# Naming guidance:
+# - storage_account_name and eventhub_namespace_name must be globally unique
+# - storage_account_name must be lowercase and contain no hyphens
+# - key_vault_name must be globally unique and 3-24 characters

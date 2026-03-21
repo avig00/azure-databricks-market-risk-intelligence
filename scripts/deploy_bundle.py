@@ -17,8 +17,6 @@ from render_bundle_vars import build_bundle_vars
 
 def _load_terraform_output(terraform_dir: Path, env_file: str | None) -> dict:
     command = ["terraform", "-chdir=" + str(terraform_dir), "output", "-json"]
-    if env_file:
-        command.extend(["-var-file", env_file])
     result = subprocess.run(command, capture_output=True, text=True, check=True)
     return json.loads(result.stdout)
 
@@ -45,7 +43,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--var-file",
-        help="Optional terraform var-file to use when reading outputs directly from terraform",
+        help="Optional reference var-file for operator context. Terraform outputs are always read from state.",
     )
     parser.add_argument(
         "--execute",
