@@ -888,15 +888,23 @@ Provisioned Azure resources:
 
 ---
 
-# Hosted UI
+# Live Application - Streamlit Risk Explorer
 
-The repository includes a Streamlit dashboard entrypoint at `streamlit_app.py`.
+The repository includes a production-deployed Streamlit dashboard entrypoint at `streamlit_app.py`.
 
-The app can run immediately in sample mode because the repo already includes:
+`STREAMLIT` `RISK EXPLORER`
 
-- sample Gold-layer datasets in `data/local`
-- sample model artifacts in `data/sample/artifacts`
-- local-first defaults in `.env.example`
+Live app:
+
+https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/
+
+This production-deployed Streamlit application demonstrates the Gold-layer portfolio risk views in action, including:
+
+- portfolio risk overview
+- market stress trend analysis
+- asset-level risk exploration
+- portfolio simulation using the packaged model artifacts
+- operational health and deployment context views
 
 Recommended Streamlit Community Cloud settings:
 
@@ -905,17 +913,16 @@ Main file path: streamlit_app.py
 Python version: 3.11
 ```
 
-Recommended deployment flow:
+# App Preview
 
-1. Deploy `streamlit_app.py` to Streamlit Community Cloud
-2. Use the bundled sample datasets as the public demo path
-3. Keep the app focused on portfolio simulation, risk metrics, and operational views
+Preview images will be added in a later update.
 
-Hosted app link:
+Planned preview set:
 
-```text
-Add Streamlit app URL here after deployment
-```
+- dashboard landing view
+- trend and stress charts
+- simulation panel with portfolio output
+- asset explorer and correlation exposure tables
 
 ---
 
