@@ -25,7 +25,7 @@ Features:
 
 # Live Application - Streamlit Market Intelligence Explorer
 
-[![Market Intelligence Explorer](https://img.shields.io/badge/MARKET-INTELLIGEMCE%20EXPLORER-14967f?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=555555)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
+[![Market Intelligence Explorer](https://img.shields.io/badge/STREAMLIT-MARKET%20INTELLIGEMCE%20EXPLORER-14967f?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=555555)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
 
 
 Live app:
