@@ -23,11 +23,11 @@ Features:
 
 ---
 
-# Live Application - Streamlit Risk Explorer
+# Live Application - Streamlit Market Intelligence Explorer
 
 [![Streamlit Risk Explorer](https://img.shields.io/badge/STREAMLIT-RISK%20EXPLORER-14967f?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=555555)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
 
-`RISK EXPLORER`
+`MARKET INTELLIGENCE EXPLORER`
 
 Live app:
 
