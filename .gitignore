@@ -8,6 +8,7 @@ data/sample/artifacts/
 data/sample/logs/
 docs/project_tracker.md
 .streamlit/secrets.toml
+.streamlit/secrets.toml.example
 infra/terraform/.terraform/
 infra/terraform/terraform.tfstate
 infra/terraform/terraform.tfstate.backup
