@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from math import sqrt
 
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.metrics import mean_absolute_error
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from market_risk_platform.config import AppConfig, load_config
 from market_risk_platform.utils import read_dataset, run_stage
 
-from .common import persist_model
+from .common import persist_model, temporal_train_test_split
 
 
 VOL_FEATURES = [
@@ -32,15 +32,21 @@ class ModelTrainingResult:
 
 def train_model(config: AppConfig | None = None) -> ModelTrainingResult:
     config = config or load_config()
-    training = read_dataset(config.dataset_contracts()["features_asset_training"], config).dropna(subset=VOL_FEATURES)
-    X = training[VOL_FEATURES]
-    y = training["future_volatility_7d"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    training = read_dataset(config.dataset_contracts()["features_asset_training"], config).dropna(
+        subset=VOL_FEATURES + ["future_volatility_7d"]
+    )
+    train_frame, test_frame = temporal_train_test_split(training, date_col="date", test_fraction=0.2)
+    X_train = train_frame[VOL_FEATURES]
+    y_train = train_frame["future_volatility_7d"]
+    X_test = test_frame[VOL_FEATURES]
+    y_test = test_frame["future_volatility_7d"]
     model = GradientBoostingRegressor(random_state=42)
     model.fit(X_train, y_train)
     preds = model.predict(X_test)
     mae = float(mean_absolute_error(y_test, preds))
-    model_path, metrics_path = persist_model(model, {"mae": mae}, config.artifact_root, "volatility_model")
+    rmse = float(sqrt(mean_squared_error(y_test, preds)))
+    r2 = float(r2_score(y_test, preds))
+    model_path, metrics_path = persist_model(model, {"mae": mae, "rmse": rmse, "r2": r2}, config.artifact_root, "volatility_model")
     return ModelTrainingResult(str(model_path), str(metrics_path), mae)
 
 

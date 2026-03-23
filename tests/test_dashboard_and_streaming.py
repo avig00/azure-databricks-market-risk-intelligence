@@ -28,7 +28,7 @@ def test_dashboard_payload_and_streaming(configured_env) -> None:
     assert payload["correlation_network"]
     assert payload["timeseries"]["volatility_trend"]
     assert payload["timeseries"]["stress_trend"]
-    assert payload["portfolio_simulation"]["predicted_risk_tier"] in {"LOW", "MEDIUM", "HIGH"}
+    assert payload["portfolio_simulation"]["predicted_risk_tier"] in {"STABLE", "ELEVATED"}
     assert summary["headline_metrics"]["stress_regime"] in {"LOW", "MEDIUM", "HIGH"}
     status = detect_streaming_signals()
     assert status.status in {"normal", "alerting"}

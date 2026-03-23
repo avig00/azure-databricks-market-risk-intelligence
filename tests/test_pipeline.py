@@ -28,6 +28,6 @@ def test_full_pipeline(configured_env) -> None:
     assert features.portfolio_features_path.endswith("portfolio_training_features.parquet")
     assert volatility_model.primary_metric >= 0
     assert 0 <= classifier.primary_metric <= 1
-    assert result.predicted_risk_tier in {"LOW", "MEDIUM", "HIGH"}
+    assert result.predicted_risk_tier in {"STABLE", "ELEVATED"}
     assert joblib.load(config.artifact_root / "volatility_model.joblib")
     assert joblib.load(config.artifact_root / "risk_classifier.joblib")

@@ -1,6 +1,6 @@
 # Azure Databricks Market Risk Intelligence Platform
 
-A lakehouse-native financial risk intelligence system built on **Azure + Databricks** that ingests market data, computes advanced risk signals, trains ML models for volatility prediction, and allows users to simulate portfolios to evaluate downside exposure in real time.
+A lakehouse-native financial risk intelligence system built on **Azure + Databricks** that ingests market data, computes advanced risk signals, trains ML models for forward-looking volatility prediction, and allows users to simulate portfolios to evaluate downside exposure in real time.
 
 The system combines **Delta Lake engineering, distributed Spark analytics, financial risk modeling, and portfolio simulation** to replicate the type of platform used by modern bank risk teams.
 
@@ -16,7 +16,7 @@ Features:
 - Distributed Spark pipelines for large-scale financial data processing
 - Financial risk metrics (volatility, drawdowns, Value-at-Risk)
 - Portfolio risk simulation engine
-- ML models predicting future volatility and portfolio risk tiers
+- ML models for future volatility forecasting and binary portfolio risk regime classification
 - Feature Store + MLflow model lifecycle
 - Real-time market stress detection
 - Interactive dashboard for portfolio experimentation
@@ -94,7 +94,7 @@ Databricks Feature Store
             │
             ▼
 ML Models
-(volatility prediction + risk tier classification)
+(volatility prediction + risk regime classification)
 
             │
             ▼
@@ -156,7 +156,7 @@ Feature Store / MLflow
             │
             ▼
 ML Models
-(volatility prediction + risk tier classification)
+(volatility prediction + risk regime classification)
 
             │
             ▼
@@ -829,17 +829,22 @@ It provides a controlled GitHub Actions path for Terraform plan/apply and Databr
 
 # MVP Deployment Story
 
-The fastest path to a credible shipped version of this project is:
+This project now supports two polished delivery surfaces:
 
-1. provision a real `dev` Azure environment with Terraform
-2. validate or deploy the Databricks bundle in that workspace
-3. run at least one end-to-end risk workflow
-4. host the Streamlit UI as a demo surface using the repo's local sample datasets if needed
+1. a real Azure + Databricks backend provisioned with Terraform and deployed with Databricks Asset Bundles
+2. a Streamlit dashboard that can demo the platform immediately in sample-data mode using the bundled Gold-layer datasets and trained model artifacts
 
-This preserves both parts of the portfolio story:
+This keeps the portfolio story strong on both dimensions:
 
-- Azure + Databricks prove the production-style backend architecture
-- Streamlit Community Cloud provides a live user-facing demo
+- Azure + Databricks show production-style cloud architecture, infrastructure-as-code, and job packaging
+- Streamlit Community Cloud provides a public user-facing analytics demo
+
+Provisioned Azure resources:
+
+- Resource group: `rg-market-risk-intelligence-dev`
+- Storage account: `mriskinteldev001`
+- Key Vault: `kvmriskdev001`
+- Azure Databricks workspace: `adb-7405616390463908.8.azuredatabricks.net`
 
 ---
 
@@ -847,7 +852,7 @@ This preserves both parts of the portfolio story:
 
 The repository includes a Streamlit dashboard entrypoint at `streamlit_app.py`.
 
-The hosted UI can run in local/sample-data mode because the repo already includes:
+The app can run immediately in sample mode because the repo already includes:
 
 - sample Gold-layer datasets in `data/local`
 - sample model artifacts in `data/sample/artifacts`
@@ -860,7 +865,11 @@ Main file path: streamlit_app.py
 Python version: 3.11
 ```
 
-If you want the hosted UI to use real cloud-backed data later, you can move it to an authenticated backend integration after the Azure and Databricks environment is fully validated.
+Recommended deployment flow:
+
+1. Deploy `streamlit_app.py` to Streamlit Community Cloud
+2. Use the bundled sample datasets as the public demo path
+3. Keep the app focused on portfolio simulation, risk metrics, and operational views
 
 Hosted app link:
 
@@ -875,7 +884,7 @@ Add Streamlit app URL here after deployment
 Add these proof points before final submission:
 
 - screenshot of the Azure resource group and key services
-- screenshot of the Databricks workspace or bundle validation/deploy result
+- screenshot of the Databricks workspace and deployed jobs
 - screenshot of the Streamlit dashboard
 - sample output from `health-check`
 - sample output from `verify-deployment`
@@ -890,6 +899,44 @@ Streamlit app URL:
 Latest health-check result:
 Latest verify-deployment result:
 ```
+
+---
+
+# Model Evaluation
+
+The repository includes persisted evaluation metrics for the shipped sample model artifacts:
+
+- Volatility forecasting model:
+  `MAE = 0.00342`, `RMSE = 0.00425`, `R² = 0.307`
+- Portfolio risk classifier:
+  `Accuracy = 66.90%`, `Macro F1 = 0.657`
+
+These scores are produced from a time-based holdout rather than a random row split:
+
+- the volatility model predicts future 7-day asset volatility from current risk features
+- the classifier predicts a binary future portfolio volatility regime (`STABLE` vs `ELEVATED`) from current portfolio features
+
+In practice, the volatility model is the stronger predictive component, while the classifier is best interpreted as a forward-looking portfolio stress flag for scenario analysis.
+
+These metrics come from:
+
+- `data/sample/artifacts/volatility_model_metrics.csv`
+- `data/sample/artifacts/risk_classifier_metrics.csv`
+
+The application layer is validated through the operational commands below:
+
+```bash
+PYTHONPATH=src python -m market_risk_platform.main dashboard-summary
+PYTHONPATH=src python -m market_risk_platform.main health-check
+PYTHONPATH=src python -m market_risk_platform.main verify-deployment
+```
+
+Together, these checks confirm that:
+
+- Gold-layer datasets are readable
+- model artifacts are present
+- the dashboard payload can be generated
+- the end-to-end local verification contract passes
 
 ---
 
@@ -915,3 +962,10 @@ This project demonstrates how modern financial institutions can build **lakehous
 - real-time risk monitoring
 
 It showcases the use of **Azure Databricks as a unified platform for financial data engineering, ML, and risk analytics**.
+
+It also shows how to translate the same platform into a public-facing analytics application, combining:
+
+- cloud infrastructure provisioning on Azure
+- Databricks job packaging and deployment
+- portfolio simulation UX in Streamlit
+- live or sample-backed demo modes for technical presentations and hiring portfolios

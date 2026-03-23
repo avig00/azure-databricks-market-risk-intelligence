@@ -32,9 +32,8 @@ def build_gold_outputs(config: AppConfig | None = None) -> GoldResult:
     asset_features = asset_features.merge(corr_agg, on="date", how="left").merge(macro_daily, on="date", how="left")
     asset_features["correlation_spike"] = asset_features["mean_correlation"].fillna(0.0)
     asset_features["macro_shock_score"] = asset_features["macro_shock_score"].fillna(0.0)
-    asset_features["future_volatility_7d"] = asset_features.groupby("symbol")["rolling_volatility_7d"].shift(-7).fillna(
-        asset_features["rolling_volatility_7d"]
-    )
+    # Keep the target strictly future-looking; trailing rows without a horizon stay null.
+    asset_features["future_volatility_7d"] = asset_features.groupby("symbol")["rolling_volatility_7d"].shift(-7)
     stress = (
         asset_features.groupby("date", as_index=False)[
             ["rolling_volatility_30d", "drawdown", "correlation_spike", "macro_shock_score"]

@@ -16,8 +16,11 @@ def build_features(config: AppConfig | None = None) -> FeatureStoreResult:
     config = config or load_config()
     contracts = config.dataset_contracts()
     asset_features = read_dataset(contracts["gold_asset_risk_features"], config)
-    portfolio_metrics = read_dataset(contracts["gold_portfolio_risk_metrics"], config)
+    portfolio_metrics = read_dataset(contracts["gold_portfolio_risk_metrics"], config).sort_values("date").reset_index(drop=True)
     portfolio_features = portfolio_metrics.copy()
+    portfolio_features["future_portfolio_volatility_7d"] = portfolio_features["portfolio_volatility"].shift(-7)
+    portfolio_features["future_expected_drawdown_7d"] = portfolio_features["expected_drawdown"].shift(-7)
+    portfolio_features["future_value_at_risk_95_7d"] = portfolio_features["value_at_risk_95"].shift(-7)
     risk_score = (
         portfolio_features["portfolio_volatility"].rank(pct=True)
         + portfolio_features["value_at_risk_95"].rank(pct=True)
