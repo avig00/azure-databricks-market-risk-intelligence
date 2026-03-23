@@ -7,6 +7,7 @@ import pandas as pd
 
 from market_risk_platform.config import load_config
 from market_risk_platform.operations.health import build_health_report
+from market_risk_platform.pipeline import run_full_pipeline
 from market_risk_platform.simulation import simulate_portfolio
 from market_risk_platform.utils import read_dataset
 
@@ -180,11 +181,28 @@ def _dataset_setup_message() -> str:
     )
 
 
+def _bootstrap_sample_data() -> bool:
+    config = load_config()
+    if not config.use_sample_data:
+        return False
+    run_full_pipeline()
+    return True
+
+
 def _safe_build_payload() -> tuple[dict[str, object] | None, str | None]:
     try:
         return build_dashboard_payload(), None
     except FileNotFoundError:
-        return None, _dataset_setup_message()
+        try:
+            bootstrapped = _bootstrap_sample_data()
+        except Exception as exc:  # pragma: no cover - UI guardrail
+            return None, f"{_dataset_setup_message()} Bootstrap failed: {exc}"
+        if not bootstrapped:
+            return None, _dataset_setup_message()
+        try:
+            return build_dashboard_payload(), None
+        except Exception as exc:  # pragma: no cover - UI guardrail
+            return None, f"{_dataset_setup_message()} Bootstrap completed but reload failed: {exc}"
     except Exception as exc:  # pragma: no cover - UI guardrail
         return None, str(exc)
 
