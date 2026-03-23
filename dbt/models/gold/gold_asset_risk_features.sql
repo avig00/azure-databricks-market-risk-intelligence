@@ -9,11 +9,25 @@ drawdowns as (
     from {{ ref('silver_asset_drawdowns') }}
 ),
 correlations as (
+    with symbol_correlations as (
+        select
+            cast(date as date) as date,
+            symbol_a as symbol,
+            correlation
+        from {{ source('silver_upstream', 'market_correlations') }}
+        union all
+        select
+            cast(date as date) as date,
+            symbol_b as symbol,
+            correlation
+        from {{ source('silver_upstream', 'market_correlations') }}
+    )
     select
-        cast(date as date) as date,
-        avg(correlation) as mean_correlation
-    from {{ source('silver_upstream', 'market_correlations') }}
-    group by 1
+        date,
+        symbol,
+        avg(abs(correlation)) as mean_correlation
+    from symbol_correlations
+    group by 1, 2
 ),
 macro_daily as (
     with macro_enriched as (
@@ -56,6 +70,6 @@ from volatility v
 left join drawdowns d
     on v.date = d.date and v.symbol = d.symbol
 left join correlations c
-    on v.date = c.date
+    on v.date = c.date and v.symbol = c.symbol
 left join macro_daily m
     on v.date = m.date

@@ -24,12 +24,23 @@ def build_gold_outputs(config: AppConfig | None = None) -> GoldResult:
     macro = read_dataset(contracts["bronze_macro_indicators"], config)
     macro["macro_shock_score"] = macro.groupby("series_id")["value"].pct_change().fillna(0.0).abs()
     macro_daily = macro.groupby("date", as_index=False)["macro_shock_score"].mean()
-    corr_agg = correlations.groupby("date", as_index=False)["correlation"].mean().rename(columns={"correlation": "mean_correlation"})
+    corr_by_symbol = pd.concat(
+        [
+            correlations.rename(columns={"symbol_a": "symbol"})[["date", "symbol", "correlation"]],
+            correlations.rename(columns={"symbol_b": "symbol"})[["date", "symbol", "correlation"]],
+        ],
+        ignore_index=True,
+    )
+    corr_agg = (
+        corr_by_symbol.groupby(["date", "symbol"], as_index=False)["correlation"]
+        .apply(lambda s: s.abs().mean())
+        .rename(columns={"correlation": "mean_correlation"})
+    )
     asset_features = volatility.merge(drawdowns, on=["date", "symbol"], how="left")
     asset_features["momentum_signal"] = asset_features.groupby("symbol")["daily_return"].transform(
         lambda s: s.rolling(14).mean()
     ).fillna(0.0)
-    asset_features = asset_features.merge(corr_agg, on="date", how="left").merge(macro_daily, on="date", how="left")
+    asset_features = asset_features.merge(corr_agg, on=["date", "symbol"], how="left").merge(macro_daily, on="date", how="left")
     asset_features["correlation_spike"] = asset_features["mean_correlation"].fillna(0.0)
     asset_features["macro_shock_score"] = asset_features["macro_shock_score"].fillna(0.0)
     # Keep the target strictly future-looking; trailing rows without a horizon stay null.
