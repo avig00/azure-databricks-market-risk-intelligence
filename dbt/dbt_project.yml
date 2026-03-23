@@ -1,0 +1,27 @@
+name: market_risk_intelligence
+version: 1.0.0
+config-version: 2
+
+profile: market_risk_intelligence
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  market_risk_intelligence:
+    +materialized: view
+    staging:
+      +schema: staging
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table

@@ -1,0 +1,40 @@
+version: 2
+
+models:
+  - name: silver_daily_returns
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: symbol
+        tests: [not_null]
+      - name: daily_return
+        tests: [not_null]
+
+  - name: silver_volatility_metrics
+    columns:
+      - name: rolling_volatility_30d
+        tests: [not_null]
+
+  - name: silver_asset_drawdowns
+    columns:
+      - name: drawdown
+        tests: [not_null]
+
+  - name: gold_portfolio_risk_metrics
+    columns:
+      - name: date
+        tests: [not_null, unique]
+      - name: portfolio_volatility
+        tests: [not_null]
+
+  - name: gold_market_stress_signals
+    columns:
+      - name: market_stress_index
+        tests: [not_null]
+
+  - name: gold_asset_risk_features
+    columns:
+      - name: date
+        tests: [not_null]
+      - name: symbol
+        tests: [not_null]

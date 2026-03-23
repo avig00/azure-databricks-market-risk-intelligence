@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Bronze-layer market and macro ingestion tables landed before dbt transforms.
+    schema: bronze
+    tables:
+      - name: stock_prices
+      - name: macro_indicators
+
+  - name: silver_upstream
+    description: Upstream silver datasets that remain Python-built in the hybrid MVP workflow.
+    schema: silver
+    tables:
+      - name: market_correlations

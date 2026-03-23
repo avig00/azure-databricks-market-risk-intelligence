@@ -1,0 +1,10 @@
+market_risk_intelligence:
+  target: dev
+  outputs:
+    dev:
+      type: databricks
+      catalog: finance
+      schema: bronze
+      host: "{{ env_var('DATABRICKS_HOST') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN') }}"

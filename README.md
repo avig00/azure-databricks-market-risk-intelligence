@@ -191,6 +191,7 @@ The business workflow stays the same across clouds: ingest market and macro data
 
 - Apache Spark
 - PySpark
+- dbt
 - Structured Streaming
 
 ## Machine Learning
@@ -208,6 +209,11 @@ The business workflow stays the same across clouds: ingest market and macro data
 
 - Terraform
 - Databricks Asset Bundles
+
+## Transformation Framework
+
+- dbt for SQL-friendly silver/gold transformations
+- Python for ingestion, specialized correlation generation, and ML training
 
 ---
 
@@ -511,13 +517,12 @@ Algorithm:
 
 ---
 
-## Model 2 — Portfolio Risk Tier Classifier
+## Model 2 — Binary Portfolio Risk Regime Classifier
 
 Classifies portfolios into:
 
-- LOW risk
-- MEDIUM risk
-- HIGH risk
+- STABLE
+- ELEVATED
 
 Features include:
 
@@ -565,10 +570,30 @@ The system calculates:
 - portfolio volatility
 - Value-at-Risk
 - expected drawdown
-- ML risk tier prediction
+- ML risk regime prediction
 - correlation exposure
 
 This allows experimentation with different asset allocations **before committing capital**.
+
+---
+
+# dbt Transformation Layer
+
+The project now includes a lightweight **dbt** project in [dbt/](/Users/vikasvig/Desktop/portfolio_projects/azure-databricks-market-risk-intelligence/dbt) for SQL-oriented lakehouse transformations.
+
+The dbt layer covers:
+
+- `silver_daily_returns`
+- `silver_volatility_metrics`
+- `silver_asset_drawdowns`
+- `gold_asset_risk_features`
+- `gold_market_stress_signals`
+- `gold_portfolio_risk_metrics`
+
+The platform uses a hybrid transformation strategy:
+
+- Python handles market ingestion, specialized rolling correlation generation, and ML orchestration
+- dbt handles the SQL-friendly silver/gold transforms that fit naturally into a declarative analytics layer
 
 ---
 
@@ -697,6 +722,12 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
+Optional dbt dependencies:
+
+```
+pip install -r requirements-dbt.txt
+```
+
 Copy environment defaults:
 
 ```
@@ -740,6 +771,15 @@ Build lakehouse tables:
 ```
 PYTHONPATH=src python -m market_risk_platform.lakehouse.silver_transformations
 PYTHONPATH=src python -m market_risk_platform.lakehouse.gold_feature_builder
+```
+
+Build the dbt transformation layer:
+
+```
+cd dbt
+cp profiles.yml.example ~/.dbt/profiles.yml
+dbt debug
+dbt build
 ```
 
 Train models:
