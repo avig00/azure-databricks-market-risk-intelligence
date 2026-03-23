@@ -23,6 +23,37 @@ Features:
 
 ---
 
+# Live Application - Streamlit Risk Explorer
+
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
+
+`RISK EXPLORER`
+
+Live app:
+
+https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/
+
+This production-deployed Streamlit application demonstrates the Gold-layer portfolio risk views in action, including:
+
+- portfolio risk overview
+- market stress trend analysis
+- asset-level risk exploration
+- portfolio simulation using the packaged model artifacts
+- operational health and deployment context views
+
+# App Preview
+
+Preview images will be added in a later update.
+
+Planned preview set:
+
+- dashboard landing view
+- trend and stress charts
+- simulation panel with portfolio output
+- asset explorer and correlation exposure tables
+
+---
+
 # Why This Project Exists
 
 Modern banks operate lakehouse-based risk platforms to analyze portfolio exposure across thousands of assets and macroeconomic signals.
@@ -886,43 +917,12 @@ Provisioned Azure resources:
 - Key Vault: `kvmriskdev001`
 - Azure Databricks workspace: `adb-7405616390463908.8.azuredatabricks.net`
 
----
-
-# Live Application - Streamlit Risk Explorer
-
-The repository includes a production-deployed Streamlit dashboard entrypoint at `streamlit_app.py`.
-
-`STREAMLIT` `RISK EXPLORER`
-
-Live app:
-
-https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/
-
-This production-deployed Streamlit application demonstrates the Gold-layer portfolio risk views in action, including:
-
-- portfolio risk overview
-- market stress trend analysis
-- asset-level risk exploration
-- portfolio simulation using the packaged model artifacts
-- operational health and deployment context views
-
 Recommended Streamlit Community Cloud settings:
 
 ```bash
 Main file path: streamlit_app.py
 Python version: 3.11
 ```
-
-# App Preview
-
-Preview images will be added in a later update.
-
-Planned preview set:
-
-- dashboard landing view
-- trend and stress charts
-- simulation panel with portfolio output
-- asset explorer and correlation exposure tables
 
 ---
 
