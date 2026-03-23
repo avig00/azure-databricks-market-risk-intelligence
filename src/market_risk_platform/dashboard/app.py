@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 
 from market_risk_platform.config import load_config
@@ -169,6 +170,61 @@ def _build_health_table(summary: dict[str, object]) -> pd.DataFrame:
             {"check": "fresh datasets", "value": str(health.get("checks_passed", False))},
         ]
     )
+
+
+def _correlation_narrative(correlation: pd.DataFrame) -> str:
+    if correlation.empty:
+        return "Correlation exposure is unavailable for the current sample."
+    rounded = correlation["correlation_spike"].round(6)
+    if rounded.nunique() == 1:
+        return (
+            "Correlation exposure is currently uniform across the tracked assets at "
+            f"{_format_decimal(float(correlation.iloc[0]['correlation_spike']))}."
+        )
+    top_value = float(correlation.iloc[0]["correlation_spike"])
+    leaders = correlation[correlation["correlation_spike"].round(6) == round(top_value, 6)]["symbol"].tolist()
+    if len(leaders) > 1:
+        leader_text = ", ".join(leaders[:-1]) + f" and {leaders[-1]}" if len(leaders) > 2 else " and ".join(leaders)
+        return (
+            f"{leader_text} currently share the highest correlation exposure at "
+            f"{_format_decimal(top_value)}."
+        )
+    return (
+        f"{leaders[0]} currently leads correlation exposure with a reading of "
+        f"{_format_decimal(top_value)}."
+    )
+
+
+def _line_chart(
+    frame: pd.DataFrame, x: str, y_columns: list[str], color_range: list[str], y_title: str = ""
+) -> alt.Chart:
+    chart_data = frame.reset_index().melt(id_vars=[x], value_vars=y_columns, var_name="series", value_name="value")
+    return (
+        alt.Chart(chart_data)
+        .mark_line(strokeWidth=2.5)
+        .encode(
+            x=alt.X(f"{x}:T", title="Date"),
+            y=alt.Y("value:Q", title=y_title or ""),
+            color=alt.Color("series:N", scale=alt.Scale(domain=y_columns, range=color_range), legend=alt.Legend(title="")),
+            tooltip=[alt.Tooltip(f"{x}:T", title="Date"), alt.Tooltip("series:N", title="Series"), alt.Tooltip("value:Q", title="Value", format=".4f")],
+        )
+        .properties(height=280)
+    )
+
+
+def _area_chart(frame: pd.DataFrame, x: str, y: str, fill: str, line: str, y_title: str = "") -> alt.Chart:
+    chart_data = frame.reset_index()
+    area = (
+        alt.Chart(chart_data)
+        .mark_area(line={"color": line}, color=fill, opacity=0.88)
+        .encode(
+            x=alt.X(f"{x}:T", title="Date"),
+            y=alt.Y(f"{y}:Q", title=y_title or ""),
+            tooltip=[alt.Tooltip(f"{x}:T", title="Date"), alt.Tooltip(f"{y}:Q", title="Value", format=".4f")],
+        )
+        .properties(height=280)
+    )
+    return area
 
 
 def _dataset_setup_message() -> str:
@@ -400,18 +456,48 @@ def main() -> None:
         with trend_left:
             st.subheader("Average Volatility Trend")
             volatility_trend = pd.DataFrame(payload["timeseries"]["volatility_trend"]).set_index("date")
-            st.line_chart(volatility_trend)
+            st.altair_chart(
+                _line_chart(
+                    volatility_trend,
+                    "date",
+                    list(volatility_trend.columns),
+                    ["#117a65"],
+                    y_title="Volatility",
+                ),
+                use_container_width=True,
+            )
             st.subheader("Average Drawdown Trend")
             drawdown_trend = pd.DataFrame(payload["timeseries"]["drawdown_trend"]).set_index("date")
-            st.area_chart(drawdown_trend)
+            st.altair_chart(
+                _area_chart(drawdown_trend, "date", "avg_drawdown", "#7bc6a4", "#117a65", y_title="Drawdown"),
+                use_container_width=True,
+            )
         with trend_right:
             st.subheader("Stress Trend")
             stress_trend = pd.DataFrame(payload["timeseries"]["stress_trend"]).set_index("date")
-            st.line_chart(stress_trend[["market_stress_index", "avg_volatility_30d"]])
+            st.altair_chart(
+                _line_chart(
+                    stress_trend,
+                    "date",
+                    ["market_stress_index", "avg_volatility_30d"],
+                    ["#3aa17e", "#117a65"],
+                    y_title="Stress",
+                ),
+                use_container_width=True,
+            )
             st.subheader("Portfolio Trend")
             portfolio_trend = pd.DataFrame(payload["timeseries"]["portfolio_trend"]).set_index("date")
             chart_columns = [col for col in ["portfolio_volatility", "value_at_risk_95"] if col in portfolio_trend.columns]
-            st.line_chart(portfolio_trend[chart_columns])
+            st.altair_chart(
+                _line_chart(
+                    portfolio_trend,
+                    "date",
+                    chart_columns,
+                    ["#117a65", "#66b68f"][: len(chart_columns)],
+                    y_title="Portfolio Metrics",
+                ),
+                use_container_width=True,
+            )
 
     with assets_tab:
         drill_left, drill_right = st.columns([1.25, 1])
@@ -429,11 +515,7 @@ def main() -> None:
             st.subheader("Correlation Exposure")
             st.dataframe(correlation, use_container_width=True, hide_index=True)
             st.subheader("Current Narrative")
-            highest_corr = correlation.iloc[0]
-            st.info(
-                f"{highest_corr['symbol']} currently leads correlation exposure with a reading of "
-                f"{_format_decimal(highest_corr['correlation_spike'])}."
-            )
+            st.info(_correlation_narrative(correlation))
 
     with ops_tab:
         ops_left, ops_right = st.columns([1, 1.1])
