@@ -2,12 +2,19 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
+import joblib
+import numpy as np
 import pandas as pd
+import yfinance as yf
 
 from market_risk_platform.config import load_config
+from market_risk_platform.ml.train_risk_classifier import RISK_FEATURES
+from market_risk_platform.ml.train_volatility_model import VOL_FEATURES
 from market_risk_platform.operations.health import build_health_report
 from market_risk_platform.simulation import simulate_portfolio
+from market_risk_platform.data_ingestion.providers import split_index_and_assets
 from market_risk_platform.utils import read_dataset
 
 
@@ -70,7 +77,7 @@ def summarize_dashboard(payload: dict[str, object]) -> dict[str, object]:
         },
         "top_volatility_assets": top_assets,
         "simulation": simulation,
-        "health": build_health_report().__dict__,
+        "health": payload.get("health", build_health_report().__dict__),
     }
 
 
@@ -99,6 +106,221 @@ def build_dashboard_payload() -> dict[str, object]:
         "asset_risk_explorer": latest_asset.to_dict(orient="records"),
         "correlation_network": correlation_network.to_dict(orient="records"),
         "timeseries": timeseries,
+        "metadata": {
+            "data_mode": "sample",
+            "data_note": "Sample Gold-layer datasets bundled with the repo",
+        },
+    }
+
+
+def _rolling_drawdown(close_series: pd.Series) -> pd.Series:
+    running_max = close_series.cummax()
+    return (close_series / running_max) - 1.0
+
+
+def _build_correlation_frame(daily_returns: pd.DataFrame, window: int = 30) -> pd.DataFrame:
+    pivot = daily_returns.pivot(index="date", columns="symbol", values="daily_return").fillna(0.0)
+    records: list[dict[str, object]] = []
+    for idx in range(window - 1, len(pivot)):
+        window_frame = pivot.iloc[idx - window + 1 : idx + 1]
+        corr_matrix = window_frame.corr()
+        as_of_date = pivot.index[idx]
+        for symbol_a in corr_matrix.index:
+            for symbol_b in corr_matrix.columns:
+                if symbol_a >= symbol_b:
+                    continue
+                records.append(
+                    {
+                        "date": as_of_date,
+                        "symbol_a": symbol_a,
+                        "symbol_b": symbol_b,
+                        "correlation": float(corr_matrix.loc[symbol_a, symbol_b]),
+                    }
+                )
+    return pd.DataFrame(records)
+
+
+def _fetch_live_prices(symbols: list[str], start_date: str) -> pd.DataFrame:
+    data = yf.download(symbols, start=start_date, auto_adjust=False, progress=False, group_by="ticker")
+    if data.empty:
+        raise ValueError("Yahoo Finance returned no market data")
+    frames: list[pd.DataFrame] = []
+    for symbol in symbols:
+        symbol_frame = data[symbol].reset_index() if isinstance(data.columns, pd.MultiIndex) else data.reset_index()
+        if symbol_frame.empty:
+            continue
+        symbol_frame = symbol_frame.rename(
+            columns={
+                "Date": "date",
+                "Open": "open",
+                "High": "high",
+                "Low": "low",
+                "Close": "close",
+                "Adj Close": "adj_close",
+                "Volume": "volume",
+            }
+        )
+        symbol_frame["symbol"] = symbol
+        symbol_frame["source"] = "yfinance"
+        frames.append(symbol_frame[["date", "symbol", "open", "high", "low", "close", "adj_close", "volume", "source"]])
+    if not frames:
+        raise ValueError("Yahoo Finance did not return supported ticker data")
+    return pd.concat(frames, ignore_index=True)
+
+
+def _fetch_live_macro(config: Any, start_date: str) -> tuple[pd.DataFrame, bool]:
+    if not config.fred_api_key:
+        return pd.DataFrame(columns=["date", "series_id", "value", "source"]), False
+    from fredapi import Fred
+
+    fred = Fred(api_key=config.fred_api_key)
+    rows: list[dict[str, object]] = []
+    for series_id in config.fred_series:
+        series = fred.get_series(series_id, observation_start=start_date)
+        for date, value in series.items():
+            rows.append(
+                {
+                    "date": pd.Timestamp(date),
+                    "series_id": series_id,
+                    "value": float(value),
+                    "source": "fred",
+                }
+            )
+    return pd.DataFrame(rows), True
+
+
+def _build_live_asset_features(config: Any) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, dict[str, object]]:
+    end_date = pd.Timestamp.today().normalize()
+    price_start = (end_date - pd.Timedelta(days=420)).strftime("%Y-%m-%d")
+    macro_start = (end_date - pd.Timedelta(days=540)).strftime("%Y-%m-%d")
+    price_df = _fetch_live_prices(config.market_symbols, price_start)
+    stock_prices, _market_indices = split_index_and_assets(price_df)
+    stock_prices = stock_prices.sort_values(["symbol", "date"])
+    stock_prices["daily_return"] = stock_prices.groupby("symbol")["adj_close"].pct_change().fillna(0.0)
+    daily_returns = stock_prices[["date", "symbol", "daily_return"]].copy()
+    metrics = daily_returns.copy()
+    for window in (7, 30, 90):
+        metrics[f"rolling_volatility_{window}d"] = (
+            metrics.groupby("symbol")["daily_return"].transform(lambda s: s.rolling(window).std(ddof=0)).fillna(0.0)
+        )
+    drawdowns = stock_prices[["date", "symbol", "adj_close"]].copy()
+    drawdowns["drawdown"] = stock_prices.groupby("symbol")["adj_close"].transform(_rolling_drawdown)
+    corr = _build_correlation_frame(daily_returns, window=30)
+    corr_agg = corr.groupby("date", as_index=False)["correlation"].mean().rename(columns={"correlation": "mean_correlation"})
+    macro_df, fred_enabled = _fetch_live_macro(config, macro_start)
+    if macro_df.empty:
+        macro_daily = pd.DataFrame({"date": metrics["date"].drop_duplicates().sort_values(), "macro_shock_score": 0.0})
+    else:
+        macro_df["macro_shock_score"] = macro_df.groupby("series_id")["value"].pct_change().fillna(0.0).abs()
+        macro_daily = macro_df.groupby("date", as_index=False)["macro_shock_score"].mean()
+    asset_features = metrics.merge(drawdowns[["date", "symbol", "drawdown"]], on=["date", "symbol"], how="left")
+    asset_features["momentum_signal"] = asset_features.groupby("symbol")["daily_return"].transform(lambda s: s.rolling(14).mean()).fillna(0.0)
+    asset_features = asset_features.merge(corr_agg, on="date", how="left").merge(macro_daily, on="date", how="left")
+    asset_features["correlation_spike"] = asset_features["mean_correlation"].fillna(0.0)
+    asset_features["macro_shock_score"] = asset_features["macro_shock_score"].fillna(0.0)
+    asset_features["future_volatility_7d"] = asset_features.groupby("symbol")["rolling_volatility_7d"].shift(-7).fillna(
+        asset_features["rolling_volatility_7d"]
+    )
+    stress = (
+        asset_features.groupby("date", as_index=False)[["rolling_volatility_30d", "drawdown", "correlation_spike", "macro_shock_score"]]
+        .mean()
+        .rename(columns={"rolling_volatility_30d": "avg_volatility_30d"})
+    )
+    stress["market_stress_index"] = (
+        stress["avg_volatility_30d"] * 0.4
+        + stress["drawdown"].abs() * 0.2
+        + stress["correlation_spike"].clip(lower=0) * 0.2
+        + stress["macro_shock_score"].clip(lower=0) * 0.2
+    )
+    portfolio = (
+        asset_features.groupby("date", as_index=False)[["rolling_volatility_30d", "drawdown", "correlation_spike", "macro_shock_score"]]
+        .mean()
+        .rename(columns={"rolling_volatility_30d": "portfolio_volatility", "drawdown": "expected_drawdown"})
+    )
+    portfolio["value_at_risk_95"] = portfolio["portfolio_volatility"] * 1.65
+    metadata = {
+        "data_mode": "live",
+        "data_note": "Yahoo Finance live market data with optional FRED macro enrichment",
+        "fred_enabled": fred_enabled,
+        "price_start": price_start,
+    }
+    return asset_features, stress, portfolio, metadata
+
+
+def _build_live_simulation(asset_features: pd.DataFrame, config: Any, assets: list[str], weights: list[float], horizon: int) -> dict[str, object]:
+    latest = asset_features.sort_values("date").groupby("symbol").tail(1).set_index("symbol")
+    selected_assets = assets or config.portfolio_symbols[:3]
+    missing = [asset for asset in selected_assets if asset not in latest.index]
+    if missing:
+        raise ValueError(f"Live data is missing assets: {', '.join(missing)}")
+    chosen = latest.loc[selected_assets]
+    chosen_weights = np.array(weights or [1 / len(selected_assets)] * len(selected_assets))
+    portfolio_vol = float(np.dot(chosen_weights, chosen["rolling_volatility_30d"]))
+    expected_drawdown = float(np.dot(chosen_weights, chosen["drawdown"]))
+    correlation_exposure = float(chosen["correlation_spike"].mean())
+    macro_shock = float(chosen["macro_shock_score"].mean())
+    value_at_risk_95 = abs(portfolio_vol) * 1.65 * np.sqrt(horizon / 7)
+    predicted_risk_tier = "MEDIUM"
+    predicted_future_volatility = float(np.dot(chosen_weights, chosen["rolling_volatility_7d"]))
+    try:
+        risk_model = joblib.load(config.artifact_root / "risk_classifier.joblib")
+        vol_model = joblib.load(config.artifact_root / "volatility_model.joblib")
+        risk_frame = {
+            "portfolio_volatility": portfolio_vol,
+            "expected_drawdown": expected_drawdown,
+            "correlation_spike": correlation_exposure,
+            "macro_shock_score": macro_shock,
+            "value_at_risk_95": value_at_risk_95,
+        }
+        predicted_risk_tier = str(risk_model.predict(pd.DataFrame([risk_frame], columns=RISK_FEATURES))[0])
+        predicted_future_volatility = float(np.dot(chosen_weights, vol_model.predict(chosen[VOL_FEATURES].copy())))
+    except FileNotFoundError:
+        if value_at_risk_95 >= 0.035:
+            predicted_risk_tier = "HIGH"
+        elif value_at_risk_95 >= 0.02:
+            predicted_risk_tier = "MEDIUM"
+        else:
+            predicted_risk_tier = "LOW"
+    return {
+        "horizon": horizon,
+        "portfolio_volatility": portfolio_vol,
+        "value_at_risk_95": value_at_risk_95,
+        "expected_drawdown": expected_drawdown,
+        "correlation_exposure": correlation_exposure,
+        "predicted_risk_tier": predicted_risk_tier,
+        "predicted_future_volatility": predicted_future_volatility,
+    }
+
+
+def build_live_dashboard_payload(config: Any, assets: list[str] | None = None, weights: list[float] | None = None, horizon: int = 7) -> dict[str, object]:
+    asset_features, stress, portfolio, metadata = _build_live_asset_features(config)
+    simulation = _build_live_simulation(asset_features, config, assets or [], weights or [], horizon)
+    latest_asset = _latest_asset_snapshot(asset_features)
+    latest_stress = stress.sort_values("date").tail(1)
+    latest_portfolio = portfolio.sort_values("date").tail(1)
+    correlation_network = (
+        asset_features[["date", "symbol", "correlation_spike"]]
+        .sort_values("date")
+        .groupby("symbol")
+        .tail(1)
+        .sort_values("correlation_spike", ascending=False)
+    )
+    timeseries = _build_timeseries(asset_features, stress, portfolio)
+    return {
+        "portfolio_overview": latest_portfolio.to_dict(orient="records"),
+        "market_stress": latest_stress.to_dict(orient="records"),
+        "portfolio_simulation": simulation,
+        "asset_risk_explorer": latest_asset.to_dict(orient="records"),
+        "correlation_network": correlation_network.to_dict(orient="records"),
+        "timeseries": timeseries,
+        "health": {
+            "runtime_mode": "live-api",
+            "storage_backend": "external-api",
+            "latest_stage": "live_market_fetch",
+            "latest_status": "success",
+            "checks_passed": True,
+        },
+        "metadata": metadata,
     }
 
 
@@ -155,11 +377,11 @@ def _build_health_table(summary: dict[str, object]) -> pd.DataFrame:
     health = summary["health"]
     return pd.DataFrame(
         [
-            {"check": "storage backend", "value": health["storage_backend"]},
-            {"check": "runtime mode", "value": health["runtime_mode"]},
-            {"check": "latest pipeline stage", "value": health["latest_stage"] or "not recorded"},
-            {"check": "pipeline status", "value": health["latest_status"] or "unknown"},
-            {"check": "fresh datasets", "value": str(health["checks_passed"])},
+            {"check": "storage backend", "value": health.get("storage_backend", "unknown")},
+            {"check": "runtime mode", "value": health.get("runtime_mode", "unknown")},
+            {"check": "latest pipeline stage", "value": health.get("latest_stage", health.get("latest_successful_stage", "not recorded")) or "not recorded"},
+            {"check": "pipeline status", "value": health.get("latest_status", "success" if health.get("checks_passed") else "unknown")},
+            {"check": "fresh datasets", "value": str(health.get("checks_passed", False))},
         ]
     )
 
@@ -256,19 +478,11 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    payload, error = _safe_build_payload()
-    if payload is None:
-        st.error(error or "Dashboard data could not be loaded.")
-        st.info(
-            "Suggested next step: run the local ingestion, silver, gold, feature, and model training "
-            "commands before reopening the dashboard."
-        )
-        st.stop()
-
-    summary = summarize_dashboard(payload)
     config = load_config()
     available_assets = config.portfolio_symbols
 
+    st.sidebar.header("Data Source")
+    data_mode = st.sidebar.radio("Dashboard mode", options=["Sample datasets", "Live market data"], index=0)
     st.sidebar.header("Simulation Controls")
     st.sidebar.caption("Use this panel to pressure-test a custom portfolio allocation.")
     selected_assets = st.sidebar.multiselect(
@@ -294,14 +508,37 @@ def main() -> None:
     weight_total = sum(weights)
     st.sidebar.caption(f"Weight total: {weight_total:.2f}")
 
-    if simulate_clicked and selected_assets:
-        from market_risk_platform.simulation.portfolio_simulator import simulate_portfolio
+    if data_mode == "Live market data":
+        st.sidebar.caption("Live mode pulls fresh Yahoo Finance data and uses FRED only if `FRED_API_KEY` is configured.")
+        try:
+            adjusted_weights = _normalize_weights(weights) if selected_assets and auto_normalize else weights
+            payload = build_live_dashboard_payload(config, selected_assets, adjusted_weights, horizon)
+            error = None
+        except Exception as exc:  # pragma: no cover - UI guardrail
+            payload, error = None, str(exc)
+    else:
+        payload, error = _safe_build_payload()
 
+    if payload is None:
+        st.error(error or "Dashboard data could not be loaded.")
+        st.info(
+            "Suggested next step: run the local ingestion, silver, gold, feature, and model training "
+            "commands before reopening the dashboard."
+        )
+        st.stop()
+
+    summary = summarize_dashboard(payload)
+
+    if simulate_clicked and selected_assets:
         adjusted_weights = _normalize_weights(weights) if auto_normalize else weights
         if not auto_normalize and abs(weight_total - 1.0) > 1e-6:
             st.sidebar.error("Weights must sum to 1.0 to run the simulation.")
         else:
-            payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, adjusted_weights, horizon))
+            if data_mode == "Live market data":
+                asset_features, _stress, _portfolio, _metadata = _build_live_asset_features(config)
+                payload["portfolio_simulation"] = _build_live_simulation(asset_features, config, selected_assets, adjusted_weights, horizon)
+            else:
+                payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, adjusted_weights, horizon))
             summary = summarize_dashboard(payload)
             if auto_normalize and abs(weight_total - 1.0) > 1e-6:
                 st.sidebar.success("Weights were normalized automatically for the simulation run.")
@@ -316,10 +553,18 @@ def main() -> None:
 
     meta_left, meta_right = st.columns([1.5, 1])
     with meta_left:
-        st.caption(
-            f"Runtime: `{config.runtime_mode}` | Storage backend: `{config.storage_backend}` | "
-            f"Catalog: `{config.catalog.catalog}`"
-        )
+        metadata = payload.get("metadata", {})
+        if metadata.get("data_mode") == "live":
+            fred_status = "enabled" if metadata.get("fred_enabled") else "not configured"
+            st.caption(
+                f"Runtime: `live-api` | Sources: `Yahoo Finance` + `FRED ({fred_status})` | "
+                f"Fetch window start: `{metadata.get('price_start')}`"
+            )
+        else:
+            st.caption(
+                f"Runtime: `{config.runtime_mode}` | Storage backend: `{config.storage_backend}` | "
+                f"Catalog: `{config.catalog.catalog}`"
+            )
     with meta_right:
         latest_date = pd.to_datetime(asset_risk["date"]).max().date()
         st.caption(f"Latest dataset snapshot: `{latest_date.isoformat()}`")
@@ -364,13 +609,22 @@ def main() -> None:
             st.subheader("Market Stress Snapshot")
             st.dataframe(stress, use_container_width=True, hide_index=True)
             st.subheader("Operating Notes")
-            st.markdown(
-                """
-                - The dashboard uses the latest Gold-layer datasets and model artifacts.
-                - Custom simulations reuse the trained risk classifier and volatility model.
-                - This MVP is designed to show portfolio sensitivity, not trade execution.
-                """
-            )
+            if payload.get("metadata", {}).get("data_mode") == "live":
+                st.markdown(
+                    """
+                    - Live mode pulls fresh market data from Yahoo Finance on demand.
+                    - FRED enrichment is used only when `FRED_API_KEY` is configured.
+                    - Custom simulations reuse the packaged local model artifacts when available.
+                    """
+                )
+            else:
+                st.markdown(
+                    """
+                    - The dashboard uses the latest Gold-layer datasets and model artifacts.
+                    - Custom simulations reuse the trained risk classifier and volatility model.
+                    - This MVP is designed to show portfolio sensitivity, not trade execution.
+                    """
+                )
 
     with trends_tab:
         trend_left, trend_right = st.columns(2)
@@ -419,21 +673,34 @@ def main() -> None:
             st.dataframe(_build_health_table(summary), use_container_width=True, hide_index=True)
         with ops_right:
             st.subheader("Deployment Context")
-            contracts = config.dataset_contracts()
-            st.code(
-                "\n".join(
-                    [
-                        f"gold asset features: {Path(contracts['gold_asset_risk_features'].local_path)}",
-                        f"gold market stress: {Path(contracts['gold_market_stress_signals'].local_path)}",
-                        f"gold portfolio metrics: {Path(contracts['gold_portfolio_risk_metrics'].local_path)}",
-                    ]
-                ),
-                language="text",
-            )
-            st.caption(
-                "These paths are used in local mode. In Databricks mode, the same contracts resolve to "
-                "catalog-backed Delta tables and ADLS paths."
-            )
+            if payload.get("metadata", {}).get("data_mode") == "live":
+                st.code(
+                    "\n".join(
+                        [
+                            "price source: Yahoo Finance API",
+                            f"fred source enabled: {payload['metadata'].get('fred_enabled', False)}",
+                            "execution path: in-memory live feature engineering",
+                        ]
+                    ),
+                    language="text",
+                )
+                st.caption("Live mode bypasses Databricks and local parquet files so the app can demo fresh market conditions.")
+            else:
+                contracts = config.dataset_contracts()
+                st.code(
+                    "\n".join(
+                        [
+                            f"gold asset features: {Path(contracts['gold_asset_risk_features'].local_path)}",
+                            f"gold market stress: {Path(contracts['gold_market_stress_signals'].local_path)}",
+                            f"gold portfolio metrics: {Path(contracts['gold_portfolio_risk_metrics'].local_path)}",
+                        ]
+                    ),
+                    language="text",
+                )
+                st.caption(
+                    "These paths are used in local mode. In Databricks mode, the same contracts resolve to "
+                    "catalog-backed Delta tables and ADLS paths."
+                )
 
 
 if __name__ == "__main__":

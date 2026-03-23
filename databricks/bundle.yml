@@ -1,17 +1,36 @@
 bundle:
   name: azure-databricks-market-risk-intelligence
 
+variables:
+  environment:
+    default: dev
+  catalog_name:
+    default: finance_dev
+  storage_backend:
+    default: databricks
+  adls_prefix:
+    default: lakehouse/dev
+  databricks_secret_scope:
+    default: market-risk-scope
+  fred_api_key_secret_key:
+    default: fred-api-key
+  cluster_policy_id:
+    default: ""
+  notification_email:
+    default: ""
+
 artifacts:
   platform_wheel:
     type: whl
     path: ..
+    build: python3 -m build --wheel
 
 targets:
   dev:
     mode: development
     default: true
     workspace:
-      root_path: /Shared/.bundle/${bundle.name}/${bundle.target}
+      root_path: ~/.bundle/${bundle.name}/${bundle.target}
     artifacts:
       platform_wheel:
         dynamic_version: true

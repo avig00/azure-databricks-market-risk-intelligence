@@ -2,6 +2,8 @@ resources:
   jobs:
     market_risk_pipeline:
       name: market-risk-pipeline
+      run_as:
+        user_name: ${workspace.current_user.userName}
       parameters:
         - name: market_risk_env
           default: ${var.environment}
@@ -27,13 +29,18 @@ resources:
               storage_backend: "{{job.parameters.storage_backend}}"
               adls_prefix: "{{job.parameters.adls_prefix}}"
           libraries:
-            - whl: ../dist/*.whl
+            - whl: ../../dist/*.whl
       job_clusters:
         - job_cluster_key: pipeline_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 2
+            node_type_id: Standard_D4ds_v5
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: local[*]
+            custom_tags:
+              ResourceClass: SingleNode
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
               RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
@@ -46,9 +53,6 @@ resources:
             policy_id: ${var.cluster_policy_id}
       queue:
         enabled: true
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: "America/Chicago"
@@ -56,6 +60,8 @@ resources:
 
     market_risk_dashboard_refresh:
       name: market-risk-dashboard-refresh
+      run_as:
+        user_name: ${workspace.current_user.userName}
       parameters:
         - name: market_risk_env
           default: ${var.environment}
@@ -81,13 +87,18 @@ resources:
               storage_backend: "{{job.parameters.storage_backend}}"
               adls_prefix: "{{job.parameters.adls_prefix}}"
           libraries:
-            - whl: ../dist/*.whl
+            - whl: ../../dist/*.whl
       job_clusters:
         - job_cluster_key: dashboard_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 1
+            node_type_id: Standard_D4ds_v5
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: local[*]
+            custom_tags:
+              ResourceClass: SingleNode
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
               RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
@@ -98,9 +109,6 @@ resources:
               DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
               FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
             policy_id: ${var.cluster_policy_id}
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}
       schedule:
         quartz_cron_expression: "0 15 6 * * ?"
         timezone_id: "America/Chicago"
@@ -108,6 +116,8 @@ resources:
 
     market_risk_simulation:
       name: market-risk-simulation
+      run_as:
+        user_name: ${workspace.current_user.userName}
       parameters:
         - name: market_risk_env
           default: ${var.environment}
@@ -133,13 +143,18 @@ resources:
               storage_backend: "{{job.parameters.storage_backend}}"
               adls_prefix: "{{job.parameters.adls_prefix}}"
           libraries:
-            - whl: ../dist/*.whl
+            - whl: ../../dist/*.whl
       job_clusters:
         - job_cluster_key: simulation_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 1
+            node_type_id: Standard_D4ds_v5
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: local[*]
+            custom_tags:
+              ResourceClass: SingleNode
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
               RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
@@ -150,12 +165,10 @@ resources:
               DATABRICKS_SECRET_SCOPE: "{{job.parameters.databricks_secret_scope}}"
               FRED_API_KEY_SECRET_KEY: "{{job.parameters.fred_api_key_secret_key}}"
             policy_id: ${var.cluster_policy_id}
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}
-
     market_risk_post_deploy_smoke:
       name: market-risk-post-deploy-smoke
+      run_as:
+        user_name: ${workspace.current_user.userName}
       parameters:
         - name: market_risk_env
           default: ${var.environment}
@@ -181,13 +194,18 @@ resources:
               storage_backend: "{{job.parameters.storage_backend}}"
               adls_prefix: "{{job.parameters.adls_prefix}}"
           libraries:
-            - whl: ../dist/*.whl
+            - whl: ../../dist/*.whl
       job_clusters:
         - job_cluster_key: verification_cluster
           new_cluster:
             spark_version: 15.4.x-scala2.12
-            node_type_id: Standard_DS3_v2
-            num_workers: 1
+            node_type_id: Standard_D4ds_v5
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: local[*]
+            custom_tags:
+              ResourceClass: SingleNode
             spark_env_vars:
               MARKET_RISK_ENV: "{{job.parameters.market_risk_env}}"
               RUNTIME_MODE: databricks-{{job.parameters.market_risk_env}}
@@ -200,6 +218,3 @@ resources:
             policy_id: ${var.cluster_policy_id}
       queue:
         enabled: true
-      email_notifications:
-        on_failure:
-          - ${var.notification_email}

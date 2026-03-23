@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def test_environment_tfvars_exist() -> None:
-    assert Path("infra/terraform/env/dev.tfvars").exists()
+    assert Path("infra/terraform/env/dev.mvp.tfvars.example").exists()
     assert Path("infra/terraform/env/prod.tfvars").exists()
 
 
