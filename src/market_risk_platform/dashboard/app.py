@@ -405,15 +405,22 @@ def main() -> None:
         st.session_state["simulation_has_run"] = False
     if "last_simulation" not in st.session_state:
         st.session_state["last_simulation"] = None
+    if "simulation_warning" not in st.session_state:
+        st.session_state["simulation_warning"] = None
 
     if simulate_clicked and selected_assets:
         adjusted_weights = _normalize_weights(weights) if auto_normalize else weights
         if not auto_normalize and abs(weight_total - 1.0) > 1e-6:
             st.sidebar.error("Weights must sum to 1.0 to run the simulation.")
+            st.session_state["simulation_warning"] = (
+                "No new simulation was run because the weights are invalid. "
+                "The dashboard is still showing the last successful simulation result."
+            )
         else:
             payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, adjusted_weights, horizon))
             st.session_state["last_simulation"] = payload["portfolio_simulation"]
             st.session_state["simulation_has_run"] = True
+            st.session_state["simulation_warning"] = None
             if auto_normalize and abs(weight_total - 1.0) > 1e-6:
                 st.sidebar.success("Weights were normalized automatically for the simulation run.")
     elif st.session_state["simulation_has_run"] and st.session_state["last_simulation"] is not None:
@@ -478,6 +485,8 @@ def main() -> None:
             "These cards reflect the latest successful run using the assets, weights, and horizon "
             "selected in the sidebar."
         )
+        if st.session_state["simulation_warning"]:
+            st.warning(st.session_state["simulation_warning"])
         st.markdown(
             f"""
             <div class="dashboard-card">
@@ -511,6 +520,8 @@ def main() -> None:
                 st.caption(
                     "Scenario result for the assets, weights, and horizon from the latest successful run."
                 )
+                if st.session_state["simulation_warning"]:
+                    st.warning(st.session_state["simulation_warning"])
                 sim_cols = st.columns(5)
                 sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
                 sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
