@@ -68,6 +68,11 @@ def summarize_dashboard(payload: dict[str, object]) -> dict[str, object]:
             "snapshot_value_at_risk_95": overview["value_at_risk_95"],
             "snapshot_market_stress_index": stress["market_stress_index"],
             "snapshot_stress_regime": _stress_regime(stress["market_stress_index"]),
+            # Backward-compatible aliases for tests and any older callers.
+            "portfolio_volatility": overview["portfolio_volatility"],
+            "value_at_risk_95": overview["value_at_risk_95"],
+            "market_stress_index": stress["market_stress_index"],
+            "stress_regime": _stress_regime(stress["market_stress_index"]),
             "simulation_risk_tier": simulation["predicted_risk_tier"],
         },
         "top_volatility_assets": top_assets,
@@ -406,19 +411,19 @@ def main() -> None:
         latest_date = pd.to_datetime(asset_risk["date"]).max().date()
         st.caption(f"Latest pipeline snapshot date: `{latest_date.isoformat()}`")
 
+    st.markdown("#### Latest Pipeline Snapshot")
     st.caption(
-        "Top row guide: cards labeled 'Snapshot' reflect the latest pipeline baseline, while "
-        "'Simulation' cards respond to the assets, weights, and horizon you run in the sidebar."
+        "These cards reflect the most recent Gold-layer baseline produced by the pipeline. "
+        "They provide current market context and do not change when you rerun a sidebar simulation."
     )
-    metric_columns = st.columns(5)
-    metric_columns[0].metric("Snapshot Volatility", _format_percent(metrics["snapshot_portfolio_volatility"]))
-    metric_columns[1].metric("Snapshot 95% VaR", _format_percent(metrics["snapshot_value_at_risk_95"]))
-    metric_columns[2].metric("Snapshot Stress Index", _format_decimal(metrics["snapshot_market_stress_index"]))
-    metric_columns[3].metric("Snapshot Stress Regime", metrics["snapshot_stress_regime"])
-    metric_columns[4].metric("Simulation Risk Tier", metrics["simulation_risk_tier"])
+    snapshot_metric_columns = st.columns(4)
+    snapshot_metric_columns[0].metric("Volatility", _format_percent(metrics["snapshot_portfolio_volatility"]))
+    snapshot_metric_columns[1].metric("95% VaR", _format_percent(metrics["snapshot_value_at_risk_95"]))
+    snapshot_metric_columns[2].metric("Stress Index", _format_decimal(metrics["snapshot_market_stress_index"]))
+    snapshot_metric_columns[3].metric("Stress Regime", metrics["snapshot_stress_regime"])
 
-    insight_columns = st.columns(3)
-    for column, card in zip(insight_columns, insights):
+    snapshot_insight_columns = st.columns(2)
+    for column, card in zip(snapshot_insight_columns, insights[:2]):
         column.markdown(
             f"""
             <div class="dashboard-card">
@@ -429,6 +434,26 @@ def main() -> None:
             """,
             unsafe_allow_html=True,
         )
+
+    st.divider()
+
+    st.markdown("#### Custom Simulation")
+    st.caption(
+        "These cards update when you click `Run Simulation` using the assets, weights, and horizon "
+        "selected in the sidebar."
+    )
+    simulation_metric_column, simulation_outlook_column = st.columns([0.8, 2.2])
+    simulation_metric_column.metric("Risk Tier", metrics["simulation_risk_tier"])
+    simulation_outlook_column.markdown(
+        f"""
+        <div class="dashboard-card">
+            <h4>{insights[2]["title"]}</h4>
+            <div class="value">{insights[2]["value"]}</div>
+            <div>{insights[2]["detail"]}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     overview_tab, trends_tab, assets_tab, ops_tab = st.tabs(
         ["Executive View", "Trend Analysis", "Asset Drilldown", "Operations"]
