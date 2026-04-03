@@ -389,6 +389,9 @@ def main() -> None:
     stress = pd.DataFrame(payload["market_stress"])
     asset_risk = pd.DataFrame(payload["asset_risk_explorer"])
     correlation = pd.DataFrame(payload["correlation_network"])
+    if selected_assets:
+        asset_risk = asset_risk[asset_risk["symbol"].isin(selected_assets)].reset_index(drop=True)
+        correlation = correlation[correlation["symbol"].isin(selected_assets)].reset_index(drop=True)
     simulation = payload["portfolio_simulation"]
     metrics = summary["headline_metrics"]
     insights = _build_insight_cards(payload, summary)
@@ -503,6 +506,8 @@ def main() -> None:
         drill_left, drill_right = st.columns([1.25, 1])
         with drill_left:
             st.subheader("Asset Risk Explorer")
+            if selected_assets:
+                st.caption("Latest snapshot for the assets currently selected in the simulation sidebar.")
             display_columns = [
                 "symbol",
                 "rolling_volatility_30d",
@@ -513,6 +518,8 @@ def main() -> None:
             st.dataframe(asset_risk[display_columns], use_container_width=True, hide_index=True)
         with drill_right:
             st.subheader("Correlation Exposure")
+            if selected_assets:
+                st.caption("Per-asset correlation exposure for the currently selected portfolio components.")
             st.dataframe(correlation, use_container_width=True, hide_index=True)
             st.subheader("Current Narrative")
             st.info(_correlation_narrative(correlation))
