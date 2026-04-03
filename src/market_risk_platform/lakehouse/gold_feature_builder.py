@@ -24,6 +24,19 @@ def build_gold_outputs(config: AppConfig | None = None) -> GoldResult:
     macro = read_dataset(contracts["bronze_macro_indicators"], config)
     macro["macro_shock_score"] = macro.groupby("series_id")["value"].pct_change().fillna(0.0).abs()
     macro_daily = macro.groupby("date", as_index=False)["macro_shock_score"].mean()
+    market_dates = (
+        volatility[["date"]]
+        .drop_duplicates()
+        .sort_values("date")
+        .reset_index(drop=True)
+    )
+    macro_daily = pd.merge_asof(
+        market_dates,
+        macro_daily.sort_values("date"),
+        on="date",
+        direction="backward",
+    )
+    macro_daily["macro_shock_score"] = macro_daily["macro_shock_score"].fillna(0.0)
     corr_by_symbol = pd.concat(
         [
             correlations.rename(columns={"symbol_a": "symbol"})[["date", "symbol", "correlation"]],

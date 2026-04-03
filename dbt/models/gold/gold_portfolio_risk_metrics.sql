@@ -34,6 +34,22 @@ macro_daily as (
     from macro_enriched
     group by 1
 ),
+market_dates as (
+    select distinct date
+    from volatility
+),
+macro_daily_aligned as (
+    select
+        d.date,
+        coalesce(m.macro_shock_score, 0.0) as macro_shock_score
+    from market_dates d
+    left join macro_daily m
+        on m.date = (
+            select max(m2.date)
+            from macro_daily m2
+            where m2.date <= d.date
+        )
+),
 asset_features as (
     select
         v.date,
@@ -47,7 +63,7 @@ asset_features as (
         on v.date = d.date and v.symbol = d.symbol
     left join correlations c
         on v.date = c.date
-    left join macro_daily m
+    left join macro_daily_aligned m
         on v.date = m.date
 )
 
