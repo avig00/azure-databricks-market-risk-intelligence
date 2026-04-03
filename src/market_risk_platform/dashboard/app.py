@@ -404,7 +404,7 @@ def main() -> None:
         )
     with meta_right:
         latest_date = pd.to_datetime(asset_risk["date"]).max().date()
-        st.caption(f"Latest dataset snapshot: `{latest_date.isoformat()}`")
+        st.caption(f"Latest pipeline snapshot date: `{latest_date.isoformat()}`")
 
     metric_columns = st.columns(5)
     metric_columns[0].metric("Portfolio Volatility", _format_percent(metrics["portfolio_volatility"]))
@@ -433,9 +433,16 @@ def main() -> None:
     with overview_tab:
         top_left, top_right = st.columns([1.2, 0.8])
         with top_left:
-            st.subheader("Portfolio Risk Overview")
+            st.subheader("Latest Pipeline Snapshot")
+            st.caption(
+                "Precomputed Gold-layer baseline from the most recent pipeline date. "
+                "Use this as the current market backdrop, not your custom simulation result."
+            )
             st.dataframe(overview, use_container_width=True, hide_index=True)
-            st.subheader("Portfolio Simulation")
+            st.subheader("Custom Portfolio Simulation")
+            st.caption(
+                "Scenario result for the assets, weights, and horizon currently selected in the sidebar."
+            )
             sim_cols = st.columns(4)
             sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
             sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
@@ -443,13 +450,14 @@ def main() -> None:
             sim_cols[3].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
             st.json(simulation)
         with top_right:
-            st.subheader("Market Stress Snapshot")
+            st.subheader("Latest Stress Snapshot")
+            st.caption("Baseline stress signals from the same latest pipeline snapshot shown on the left.")
             st.dataframe(stress, use_container_width=True, hide_index=True)
             st.subheader("Operating Notes")
             st.markdown(
                 """
-                - The dashboard uses the latest Gold-layer datasets and model artifacts.
-                - Custom simulations reuse the trained risk classifier and volatility model.
+                - Snapshot tables reflect the latest Gold-layer datasets produced by the pipeline.
+                - Custom simulations reuse the trained risk classifier and volatility model for your selected portfolio.
                 - This MVP is designed to show portfolio sensitivity, not trade execution.
                 """
             )
