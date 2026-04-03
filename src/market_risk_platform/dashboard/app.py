@@ -485,11 +485,12 @@ def main() -> None:
                 st.caption(
                     "Scenario result for the assets, weights, and horizon from the latest successful run."
                 )
-                sim_cols = st.columns(4)
+                sim_cols = st.columns(5)
                 sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
                 sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
-                sim_cols[2].metric("Expected Drawdown", _format_percent(simulation["expected_drawdown"]))
-                sim_cols[3].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
+                sim_cols[2].metric("95% VaR", _format_percent(simulation["value_at_risk_95"]))
+                sim_cols[3].metric("Expected Drawdown", _format_percent(simulation["expected_drawdown"]))
+                sim_cols[4].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
                 st.json(simulation)
             else:
                 st.caption("Run a custom simulation from the sidebar to populate this section.")
