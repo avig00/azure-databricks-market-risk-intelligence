@@ -378,7 +378,10 @@ def main() -> None:
         )
         st.stop()
 
-    summary = summarize_dashboard(payload)
+    if "simulation_has_run" not in st.session_state:
+        st.session_state["simulation_has_run"] = False
+    if "last_simulation" not in st.session_state:
+        st.session_state["last_simulation"] = None
 
     if simulate_clicked and selected_assets:
         adjusted_weights = _normalize_weights(weights) if auto_normalize else weights
@@ -386,9 +389,14 @@ def main() -> None:
             st.sidebar.error("Weights must sum to 1.0 to run the simulation.")
         else:
             payload["portfolio_simulation"] = asdict(simulate_portfolio(selected_assets, adjusted_weights, horizon))
-            summary = summarize_dashboard(payload)
+            st.session_state["last_simulation"] = payload["portfolio_simulation"]
+            st.session_state["simulation_has_run"] = True
             if auto_normalize and abs(weight_total - 1.0) > 1e-6:
                 st.sidebar.success("Weights were normalized automatically for the simulation run.")
+    elif st.session_state["simulation_has_run"] and st.session_state["last_simulation"] is not None:
+        payload["portfolio_simulation"] = st.session_state["last_simulation"]
+
+    summary = summarize_dashboard(payload)
 
     overview = pd.DataFrame(payload["portfolio_overview"])
     stress = pd.DataFrame(payload["market_stress"])
@@ -398,6 +406,7 @@ def main() -> None:
         asset_risk = asset_risk[asset_risk["symbol"].isin(selected_assets)].reset_index(drop=True)
         correlation = correlation[correlation["symbol"].isin(selected_assets)].reset_index(drop=True)
     simulation = payload["portfolio_simulation"]
+    simulation_has_run = st.session_state["simulation_has_run"]
     metrics = summary["headline_metrics"]
     insights = _build_insight_cards(payload, summary)
 
@@ -437,23 +446,28 @@ def main() -> None:
 
     st.divider()
 
-    st.markdown("#### Custom Simulation")
-    st.caption(
-        "These cards update when you click `Run Simulation` using the assets, weights, and horizon "
-        "selected in the sidebar."
-    )
-    simulation_metric_column, simulation_outlook_column = st.columns([0.8, 2.2])
-    simulation_metric_column.metric("Risk Tier", metrics["simulation_risk_tier"])
-    simulation_outlook_column.markdown(
-        f"""
-        <div class="dashboard-card">
-            <h4>{insights[2]["title"]}</h4>
-            <div class="value">{insights[2]["value"]}</div>
-            <div>{insights[2]["detail"]}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    if simulation_has_run:
+        st.markdown("#### Custom Simulation")
+        st.caption(
+            "These cards reflect the latest successful run using the assets, weights, and horizon "
+            "selected in the sidebar."
+        )
+        simulation_metric_column, simulation_outlook_column = st.columns([0.8, 2.2])
+        simulation_metric_column.metric("Risk Tier", metrics["simulation_risk_tier"])
+        simulation_outlook_column.markdown(
+            f"""
+            <div class="dashboard-card">
+                <h4>{insights[2]["title"]}</h4>
+                <div class="value">{insights[2]["value"]}</div>
+                <div>{insights[2]["detail"]}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown("#### Custom Simulation")
+        st.caption("No custom simulation has been run yet.")
+        st.info("Choose assets, weights, and a horizon in the sidebar, then click `Run Simulation` to populate this section.")
 
     overview_tab, trends_tab, assets_tab, ops_tab = st.tabs(
         ["Executive View", "Trend Analysis", "Asset Drilldown", "Operations"]
@@ -469,15 +483,19 @@ def main() -> None:
             )
             st.dataframe(overview, use_container_width=True, hide_index=True)
             st.subheader("Custom Portfolio Simulation")
-            st.caption(
-                "Scenario result for the assets, weights, and horizon currently selected in the sidebar."
-            )
-            sim_cols = st.columns(4)
-            sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
-            sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
-            sim_cols[2].metric("Expected Drawdown", _format_percent(simulation["expected_drawdown"]))
-            sim_cols[3].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
-            st.json(simulation)
+            if simulation_has_run:
+                st.caption(
+                    "Scenario result for the assets, weights, and horizon from the latest successful run."
+                )
+                sim_cols = st.columns(4)
+                sim_cols[0].metric("Horizon", f"{simulation['horizon']}d")
+                sim_cols[1].metric("Future Volatility", _format_percent(simulation["predicted_future_volatility"]))
+                sim_cols[2].metric("Expected Drawdown", _format_percent(simulation["expected_drawdown"]))
+                sim_cols[3].metric("Correlation Exposure", _format_decimal(simulation["correlation_exposure"]))
+                st.json(simulation)
+            else:
+                st.caption("Run a custom simulation from the sidebar to populate this section.")
+                st.info("No custom simulation has been run yet.")
         with top_right:
             st.subheader("Latest Stress Snapshot")
             st.caption("Baseline stress signals from the same latest pipeline snapshot shown on the left.")
