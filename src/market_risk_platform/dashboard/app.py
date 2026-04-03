@@ -452,9 +452,7 @@ def main() -> None:
             "These cards reflect the latest successful run using the assets, weights, and horizon "
             "selected in the sidebar."
         )
-        simulation_metric_column, simulation_outlook_column = st.columns([0.8, 2.2])
-        simulation_metric_column.metric("Risk Tier", metrics["simulation_risk_tier"])
-        simulation_outlook_column.markdown(
+        st.markdown(
             f"""
             <div class="dashboard-card">
                 <h4>{insights[2]["title"]}</h4>
