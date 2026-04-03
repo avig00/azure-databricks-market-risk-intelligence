@@ -537,74 +537,80 @@ def main() -> None:
             )
 
     with trends_tab:
-        trend_left, trend_right = st.columns(2)
-        with trend_left:
-            st.subheader("Average Volatility Trend")
-            volatility_trend = pd.DataFrame(payload["timeseries"]["volatility_trend"]).set_index("date")
-            st.altair_chart(
-                _line_chart(
-                    volatility_trend,
-                    "date",
-                    list(volatility_trend.columns),
-                    ["#117a65"],
-                    y_title="Volatility",
-                ),
-                use_container_width=True,
-            )
-            st.subheader("Average Drawdown Trend")
-            drawdown_trend = pd.DataFrame(payload["timeseries"]["drawdown_trend"]).set_index("date")
-            st.altair_chart(
-                _area_chart(drawdown_trend, "date", "avg_drawdown", "#7bc6a4", "#117a65", y_title="Drawdown"),
-                use_container_width=True,
-            )
-        with trend_right:
-            st.subheader("Stress Trend")
-            stress_trend = pd.DataFrame(payload["timeseries"]["stress_trend"]).set_index("date")
-            st.altair_chart(
-                _line_chart(
-                    stress_trend,
-                    "date",
-                    ["market_stress_index", "avg_volatility_30d"],
-                    ["#3aa17e", "#117a65"],
-                    y_title="Stress",
-                ),
-                use_container_width=True,
-            )
-            st.subheader("Portfolio Trend")
-            portfolio_trend = pd.DataFrame(payload["timeseries"]["portfolio_trend"]).set_index("date")
-            chart_columns = [col for col in ["portfolio_volatility", "value_at_risk_95"] if col in portfolio_trend.columns]
-            st.altair_chart(
-                _line_chart(
-                    portfolio_trend,
-                    "date",
-                    chart_columns,
-                    ["#117a65", "#66b68f"][: len(chart_columns)],
-                    y_title="Portfolio Metrics",
-                ),
-                use_container_width=True,
-            )
+        if not simulation_has_run:
+            st.info("Run a custom simulation from the sidebar to unlock the trend analysis view.")
+        else:
+            trend_left, trend_right = st.columns(2)
+            with trend_left:
+                st.subheader("Average Volatility Trend")
+                volatility_trend = pd.DataFrame(payload["timeseries"]["volatility_trend"]).set_index("date")
+                st.altair_chart(
+                    _line_chart(
+                        volatility_trend,
+                        "date",
+                        list(volatility_trend.columns),
+                        ["#117a65"],
+                        y_title="Volatility",
+                    ),
+                    use_container_width=True,
+                )
+                st.subheader("Average Drawdown Trend")
+                drawdown_trend = pd.DataFrame(payload["timeseries"]["drawdown_trend"]).set_index("date")
+                st.altair_chart(
+                    _area_chart(drawdown_trend, "date", "avg_drawdown", "#7bc6a4", "#117a65", y_title="Drawdown"),
+                    use_container_width=True,
+                )
+            with trend_right:
+                st.subheader("Stress Trend")
+                stress_trend = pd.DataFrame(payload["timeseries"]["stress_trend"]).set_index("date")
+                st.altair_chart(
+                    _line_chart(
+                        stress_trend,
+                        "date",
+                        ["market_stress_index", "avg_volatility_30d"],
+                        ["#3aa17e", "#117a65"],
+                        y_title="Stress",
+                    ),
+                    use_container_width=True,
+                )
+                st.subheader("Portfolio Trend")
+                portfolio_trend = pd.DataFrame(payload["timeseries"]["portfolio_trend"]).set_index("date")
+                chart_columns = [col for col in ["portfolio_volatility", "value_at_risk_95"] if col in portfolio_trend.columns]
+                st.altair_chart(
+                    _line_chart(
+                        portfolio_trend,
+                        "date",
+                        chart_columns,
+                        ["#117a65", "#66b68f"][: len(chart_columns)],
+                        y_title="Portfolio Metrics",
+                    ),
+                    use_container_width=True,
+                )
 
     with assets_tab:
-        drill_left, drill_right = st.columns([1.25, 1])
-        with drill_left:
-            st.subheader("Asset Risk Explorer")
-            if selected_assets:
-                st.caption("Latest snapshot for the assets currently selected in the simulation sidebar.")
-            display_columns = [
-                "symbol",
-                "rolling_volatility_30d",
-                "drawdown",
-                "correlation_spike",
-                "macro_shock_score",
-            ]
-            st.dataframe(asset_risk_display[display_columns], use_container_width=True, hide_index=True)
-        with drill_right:
-            st.subheader("Correlation Exposure")
-            if selected_assets:
-                st.caption("Per-asset correlation exposure for the currently selected portfolio components.")
-            st.dataframe(correlation_display, use_container_width=True, hide_index=True)
-            st.subheader("Current Narrative")
-            st.info(_correlation_narrative(correlation_display))
+        if not simulation_has_run:
+            st.info("Run a custom simulation from the sidebar to unlock the asset drilldown view.")
+        else:
+            drill_left, drill_right = st.columns([1.25, 1])
+            with drill_left:
+                st.subheader("Asset Risk Explorer")
+                if selected_assets:
+                    st.caption("Latest snapshot for the assets currently selected in the simulation sidebar.")
+                display_columns = [
+                    "symbol",
+                    "rolling_volatility_30d",
+                    "drawdown",
+                    "correlation_spike",
+                    "macro_shock_score",
+                ]
+                st.dataframe(asset_risk_display[display_columns], use_container_width=True, hide_index=True)
+            with drill_right:
+                st.subheader("Correlation Exposure")
+                if selected_assets:
+                    st.caption("Per-asset correlation exposure for the currently selected portfolio components.")
+                st.dataframe(correlation_display, use_container_width=True, hide_index=True)
+                st.subheader("Current Narrative")
+                st.info(_correlation_narrative(correlation_display))
 
     with ops_tab:
         ops_left, ops_right = st.columns([1, 1.1])
