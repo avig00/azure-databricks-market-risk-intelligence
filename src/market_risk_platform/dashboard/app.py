@@ -121,6 +121,29 @@ def _format_percent(value: float, digits: int = 1) -> str:
     return f"{value * 100:.{digits}f}%"
 
 
+def _prepare_display_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    display = frame.copy()
+    if "date" in display.columns:
+        display["date"] = pd.to_datetime(display["date"]).dt.strftime("%Y-%m-%d")
+    return display
+
+
+def _build_combined_snapshot(overview: pd.DataFrame, stress: pd.DataFrame, stress_regime: str) -> pd.DataFrame:
+    overview_row = overview.iloc[0].to_dict()
+    stress_row = stress.iloc[0].to_dict()
+    combined = {
+        "date": overview_row.get("date", stress_row.get("date")),
+        "portfolio_volatility": overview_row.get("portfolio_volatility"),
+        "value_at_risk_95": overview_row.get("value_at_risk_95"),
+        "expected_drawdown": overview_row.get("expected_drawdown"),
+        "correlation_spike": overview_row.get("correlation_spike"),
+        "macro_shock_score": overview_row.get("macro_shock_score"),
+        "market_stress_index": stress_row.get("market_stress_index"),
+        "stress_regime": stress_regime,
+    }
+    return _prepare_display_frame(pd.DataFrame([combined]))
+
+
 def _risk_tone(label: str) -> str:
     return {
         "LOW": "Stable",
@@ -409,6 +432,9 @@ def main() -> None:
     simulation_has_run = st.session_state["simulation_has_run"]
     metrics = summary["headline_metrics"]
     insights = _build_insight_cards(payload, summary)
+    snapshot_display = _build_combined_snapshot(overview, stress, metrics["snapshot_stress_regime"])
+    asset_risk_display = _prepare_display_frame(asset_risk)
+    correlation_display = _prepare_display_frame(correlation)
 
     meta_left, meta_right = st.columns([1.5, 1])
     with meta_left:
@@ -465,7 +491,7 @@ def main() -> None:
     else:
         st.markdown("#### Custom Simulation")
         st.caption("No custom simulation has been run yet.")
-        st.info("Choose assets, weights, and a horizon in the sidebar, then click `Run Simulation` to populate this section.")
+        st.info("Choose assets, weights, and a horizon in the sidebar, then click Run Simulation to populate this section.")
 
     overview_tab, trends_tab, assets_tab, ops_tab = st.tabs(
         ["Executive View", "Trend Analysis", "Asset Drilldown", "Operations"]
@@ -476,10 +502,10 @@ def main() -> None:
         with top_left:
             st.subheader("Latest Pipeline Snapshot")
             st.caption(
-                "Precomputed Gold-layer baseline from the most recent pipeline date. "
+                "Combined baseline view from the most recent pipeline date. "
                 "Use this as the current market backdrop, not your custom simulation result."
             )
-            st.dataframe(overview, use_container_width=True, hide_index=True)
+            st.dataframe(snapshot_display, use_container_width=True, hide_index=True)
             st.subheader("Custom Portfolio Simulation")
             if simulation_has_run:
                 st.caption(
@@ -496,13 +522,15 @@ def main() -> None:
                 st.caption("Run a custom simulation from the sidebar to populate this section.")
                 st.info("No custom simulation has been run yet.")
         with top_right:
-            st.subheader("Latest Stress Snapshot")
-            st.caption("Baseline stress signals from the same latest pipeline snapshot shown on the left.")
-            st.dataframe(stress, use_container_width=True, hide_index=True)
+            st.subheader("Snapshot Stress Context")
+            st.caption("Stress summary from the same latest pipeline snapshot shown on the left.")
+            stress_cols = st.columns(2)
+            stress_cols[0].metric("Stress Index", _format_decimal(metrics["snapshot_market_stress_index"]))
+            stress_cols[1].metric("Stress Regime", metrics["snapshot_stress_regime"])
             st.subheader("Operating Notes")
             st.markdown(
                 """
-                - Snapshot tables reflect the latest Gold-layer datasets produced by the pipeline.
+                - The snapshot table combines baseline portfolio and stress context from the latest Gold-layer datasets.
                 - Custom simulations reuse the trained risk classifier and volatility model for your selected portfolio.
                 - This MVP is designed to show portfolio sensitivity, not trade execution.
                 """
@@ -569,14 +597,14 @@ def main() -> None:
                 "correlation_spike",
                 "macro_shock_score",
             ]
-            st.dataframe(asset_risk[display_columns], use_container_width=True, hide_index=True)
+            st.dataframe(asset_risk_display[display_columns], use_container_width=True, hide_index=True)
         with drill_right:
             st.subheader("Correlation Exposure")
             if selected_assets:
                 st.caption("Per-asset correlation exposure for the currently selected portfolio components.")
-            st.dataframe(correlation, use_container_width=True, hide_index=True)
+            st.dataframe(correlation_display, use_container_width=True, hide_index=True)
             st.subheader("Current Narrative")
-            st.info(_correlation_narrative(correlation))
+            st.info(_correlation_narrative(correlation_display))
 
     with ops_tab:
         ops_left, ops_right = st.columns([1, 1.1])
