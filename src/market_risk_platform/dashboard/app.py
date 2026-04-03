@@ -64,10 +64,10 @@ def summarize_dashboard(payload: dict[str, object]) -> dict[str, object]:
     top_assets = payload["asset_risk_explorer"][:5]
     return {
         "headline_metrics": {
-            "portfolio_volatility": overview["portfolio_volatility"],
-            "value_at_risk_95": overview["value_at_risk_95"],
-            "market_stress_index": stress["market_stress_index"],
-            "stress_regime": _stress_regime(stress["market_stress_index"]),
+            "snapshot_portfolio_volatility": overview["portfolio_volatility"],
+            "snapshot_value_at_risk_95": overview["value_at_risk_95"],
+            "snapshot_market_stress_index": stress["market_stress_index"],
+            "snapshot_stress_regime": _stress_regime(stress["market_stress_index"]),
             "simulation_risk_tier": simulation["predicted_risk_tier"],
         },
         "top_volatility_assets": top_assets,
@@ -136,23 +136,23 @@ def _normalize_weights(weights: list[float]) -> list[float]:
 def _build_insight_cards(payload: dict[str, object], summary: dict[str, object]) -> list[dict[str, str]]:
     top_asset = payload["asset_risk_explorer"][0]
     simulation = payload["portfolio_simulation"]
-    stress_index = summary["headline_metrics"]["market_stress_index"]
+    stress_index = summary["headline_metrics"]["snapshot_market_stress_index"]
     return [
         {
-            "title": "Top Risk Concentration",
+            "title": "Snapshot: Top Risk Concentration",
             "value": top_asset["symbol"],
-            "detail": f"Highest 30d volatility at {_format_percent(top_asset['rolling_volatility_30d'])}.",
+            "detail": f"Latest pipeline snapshot shows the highest 30d volatility at {_format_percent(top_asset['rolling_volatility_30d'])}.",
         },
         {
-            "title": "Stress Regime",
-            "value": _risk_tone(summary["headline_metrics"]["stress_regime"]),
+            "title": "Snapshot: Stress Regime",
+            "value": _risk_tone(summary["headline_metrics"]["snapshot_stress_regime"]),
             "detail": f"Market stress index is {_format_decimal(stress_index)} based on latest Gold-layer signals.",
         },
         {
             "title": "Simulation Outlook",
             "value": simulation["predicted_risk_tier"],
             "detail": (
-                "Projected future volatility is "
+                "Your selected portfolio projects future volatility of "
                 f"{_format_percent(simulation['predicted_future_volatility'])} over the selected horizon."
             ),
         },
@@ -406,12 +406,16 @@ def main() -> None:
         latest_date = pd.to_datetime(asset_risk["date"]).max().date()
         st.caption(f"Latest pipeline snapshot date: `{latest_date.isoformat()}`")
 
+    st.caption(
+        "Top row guide: cards labeled 'Snapshot' reflect the latest pipeline baseline, while "
+        "'Simulation' cards respond to the assets, weights, and horizon you run in the sidebar."
+    )
     metric_columns = st.columns(5)
-    metric_columns[0].metric("Portfolio Volatility", _format_percent(metrics["portfolio_volatility"]))
-    metric_columns[1].metric("95% VaR", _format_percent(metrics["value_at_risk_95"]))
-    metric_columns[2].metric("Stress Index", _format_decimal(metrics["market_stress_index"]))
-    metric_columns[3].metric("Stress Regime", metrics["stress_regime"])
-    metric_columns[4].metric("Risk Tier", metrics["simulation_risk_tier"])
+    metric_columns[0].metric("Snapshot Volatility", _format_percent(metrics["snapshot_portfolio_volatility"]))
+    metric_columns[1].metric("Snapshot 95% VaR", _format_percent(metrics["snapshot_value_at_risk_95"]))
+    metric_columns[2].metric("Snapshot Stress Index", _format_decimal(metrics["snapshot_market_stress_index"]))
+    metric_columns[3].metric("Snapshot Stress Regime", metrics["snapshot_stress_regime"])
+    metric_columns[4].metric("Simulation Risk Tier", metrics["simulation_risk_tier"])
 
     insight_columns = st.columns(3)
     for column, card in zip(insight_columns, insights):
