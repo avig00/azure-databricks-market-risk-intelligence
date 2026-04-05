@@ -64,26 +64,26 @@ Risk teams need to answer questions like:
 - What downside risk does a portfolio face tomorrow?
 - How does a new asset allocation change portfolio risk?
 
-This project demonstrates how to build such a system using **Azure Databricks as the central data + ML platform**.
+This project demonstrates how to build such a system using Azure Databricks as the central data + ML platform.
 
 ---
 
 # Key Innovation — Portfolio Simulation Engine
 
-Most analytics platforms compute risk metrics **after a portfolio already exists**.
+Most analytics platforms compute risk metrics after a portfolio already exists.
 
-This system introduces a **portfolio simulation engine** that allows users to:
+This system introduces a portfolio simulation engine that allows users to:
 
 - Construct hypothetical portfolios
 - Allocate weights across assets
 - Simulate future risk metrics
 - Predict volatility and downside exposure
 
-This allows **scenario-driven portfolio experimentation**, similar to tools used by institutional risk desks.
+This allows scenario-driven portfolio experimentation, similar to tools used by institutional risk desks.
 
 Example simulation question:
 
-> "If I allocate 40% tech stocks, 30% energy, and 30% bonds, what is the predicted volatility and Value-at-Risk over the next 7 days?"
+> "If I build a portfolio with 60% TLT, 20% SPY, and 20% XOM, does the 7-day outlook stay stable or move into an elevated risk regime?"
 
 ---
 
