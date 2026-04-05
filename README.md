@@ -25,7 +25,7 @@ Features:
 
 # Live Application - Streamlit Market Intelligence Explorer
 
-[![Market Intelligence Explorer](https://img.shields.io/badge/STREAMLIT-MARKET%20INTELLIGEMCE%20EXPLORER-14967f?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=555555)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
+[![Market Intelligence Explorer](https://img.shields.io/badge/STREAMLIT-MARKET%20INTELLIGENCE%20EXPLORER-14967f?style=for-the-badge&logo=streamlit&logoColor=white&labelColor=555555)](https://azure-databricks-market-risk-intelligence-7ypgxvjgm9htyhxmuo7j.streamlit.app/)
 
 
 Live app:
@@ -42,14 +42,15 @@ This production-deployed Streamlit application demonstrates the Gold-layer portf
 
 # App Preview
 
-Preview images will be added in a later update.
+Interactive demo:
 
-Planned preview set:
+![Streamlit market risk demo](assets/README/azure-databricks-market-app.gif)
 
-- dashboard landing view
-- trend and stress charts
-- simulation panel with portfolio output
-- asset explorer and correlation exposure tables
+Screenshot highlights:
+
+![Market risk dashboard overview](assets/README/azure-dbx-screenshot1.png)
+
+![Asset drilldown and correlation exposure](assets/README/azure-dbx-screenshot2.png)
 
 ---
 

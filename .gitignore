@@ -16,3 +16,4 @@ infra/terraform/env/dev.tfvars
 build/
 dist/
 *.egg-info/
+assets/README/*.mov
