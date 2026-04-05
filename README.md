@@ -41,12 +41,7 @@ This production-deployed Streamlit application demonstrates the Gold-layer portf
 - operational health and deployment context views
 
 # App Preview
-
-Interactive demo:
-
 ![Streamlit market risk demo](assets/README/azure-databricks-market-app.gif)
-
-Screenshot highlights:
 
 ![Market risk dashboard overview](assets/README/azure-dbx-screenshot1.png)
 
